@@ -1,4 +1,4 @@
-#include <AudioUnit/AudioUnit.r>
+#include <AudioUnit.r>
 
 #define RES_ID    1000
 #define COMP_TYPE 'aumu'

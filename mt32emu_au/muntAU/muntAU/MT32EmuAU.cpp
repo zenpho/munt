@@ -73,6 +73,7 @@ OSStatus MT32Synth::Initialize() {
     if(!pcmROMFile.open("/Library/MT32/MT32_PCM.ROM")) {
         printf("Error opening MT32_PCM.ROM\n");
     }
+	
     
     romImage = MT32Emu::ROMImage::makeROMImage(&controlROMFile);
     pcmRomImage = MT32Emu::ROMImage::makeROMImage(&pcmROMFile);
@@ -85,7 +86,7 @@ OSStatus MT32Synth::Initialize() {
     
     sendMIDI(0xC1, 0x00, 0x00, 0x00);
     MusicDeviceBase::Initialize();
-    
+	
     synth->setOutputGain(2.0);
     
     return noErr;
@@ -395,14 +396,15 @@ OSStatus MT32Synth::GetParameterInfo(AudioUnitScope inScope,
     } else if (inParameterID == kReverbGainParam) {
         if (inScope != kAudioUnitScope_Global) return kAudioUnitErr_InvalidScope;
         
+		outParameterInfo.flags = SetAudioUnitParameterDisplayType (0, kAudioUnitParameterFlag_DisplaySquareRoot);
         outParameterInfo.flags += kAudioUnitParameterFlag_IsWritable;
         outParameterInfo.flags += kAudioUnitParameterFlag_IsReadable;
         
         AUBase::FillInParameterName (outParameterInfo, kReverbGainParamName, false);
         outParameterInfo.unit = kAudioUnitParameterUnit_LinearGain;
-        outParameterInfo.minValue = 0;
-        outParameterInfo.maxValue = 5.0;
-        outParameterInfo.defaultValue = 1.0;
+        outParameterInfo.minValue = 0.0f;
+        outParameterInfo.maxValue = 5.0f;
+        outParameterInfo.defaultValue = 1.0f;
         
         return noErr;
     } else {

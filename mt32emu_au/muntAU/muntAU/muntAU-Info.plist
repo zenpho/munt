@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>AudioComponents </key>
+	<key>AudioComponents</key>
 	<array>
 		<dict>
 			<key>description</key>
@@ -18,7 +18,7 @@
 			<key>type</key>
 			<string>aumu</string>
 			<key>version</key>
-			<integer>4294967295</integer>
+			<integer>1</integer>
 		</dict>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
