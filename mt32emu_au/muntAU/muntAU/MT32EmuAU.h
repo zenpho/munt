@@ -2,7 +2,12 @@
 //  MT32EmuAU.h
 //  muntAU
 //
-//  Created by Ivan Safrin on 1/17/14.
+//  Updated 2023 jan 05 by Zenpho
+//  added CoreMidi virtual ports for timbre dump data
+//  to work around Ableton Live limitations when hosting
+//  multitimbral plugins and using MIDI Sysex messages
+//
+//  Orginal code by Ivan Safrin on 1/17/14.
 //  Copyright (c) 2014 Ivan Safrin. All rights reserved.
 //
 
@@ -12,6 +17,20 @@
 #pragma once
 
 class MT32Synth : public MusicDeviceBase {
+    private:
+        AudioConverterRef audioConverterRef;
+        CAStreamBasicDescription destFormat;
+  
+        const MT32Emu::ROMImage *romImage;
+        const MT32Emu::ROMImage *pcmRomImage;
+  
+        // workaround Ableton Live limitations
+        // use CoreMidi port - not (Ableton Live) host handlers
+        MIDIClientRef m_client = 0;
+        MIDIEndpointRef m_endpointOut = 0;
+        MIDIEndpointRef m_endpointIn = 0;
+  
+
     public:
         MT32Synth(ComponentInstance inComponentInstance);
         virtual ~MT32Synth();
@@ -19,17 +38,33 @@ class MT32Synth : public MusicDeviceBase {
         virtual OSStatus Initialize();
         virtual void Cleanup();
         virtual OSStatus Version();
-    
+
+        void CoreMidiPortSetup();
+        static void CoreMidiRX (const MIDIPacketList *packetList, void* readProcRefCon, void* srcConnRefCon);
+  
+        void CoreMidiTimbreDump(Byte addrH, Byte addrL);
         void sendMIDI(unsigned char b0, unsigned char b1, unsigned char b2, unsigned char b3);
     
         virtual OSStatus RestoreState(CFPropertyListRef inData);
     
         virtual bool StreamFormatWritable(	AudioUnitScope scope, AudioUnitElement element);
+  
+        // workaround Ableton Live limitations
+        // use CoreMidi port - not (Ableton Live) host MIDI
+        virtual OSStatus HandleNoteOn(UInt8 inChannel, UInt8 inNoteNumber, UInt8 inVelocity, UInt32 inStartFrame)
+        { return noErr; }
+  
+        virtual OSStatus HandleNoteOff(	UInt8 inChannel, UInt8 inNoteNumber, UInt8 inVelocity, UInt32 inStartFrame)
+        { return noErr; }
     
-        virtual OSStatus HandleNoteOn(UInt8 inChannel, UInt8 inNoteNumber, UInt8 inVelocity, UInt32 inStartFrame);
-        virtual OSStatus HandleNoteOff(	UInt8 inChannel, UInt8 inNoteNumber, UInt8 inVelocity, UInt32 inStartFrame);
-    
-        virtual OSStatus HandlePitchWheel(UInt8 inChannel, UInt8 inPitch1, UInt8 inPitch2, UInt32 inStartFrame);
+        virtual OSStatus HandlePitchWheel(UInt8 inChannel, UInt8 inPitch1, UInt8 inPitch2, UInt32 inStartFrame)
+        { return noErr; }
+  
+        virtual OSStatus HandleProgramChange(  UInt8  inChannel, UInt8   inValue)
+        { return noErr; }
+  
+        virtual OSStatus HandleSysEx(const UInt8 *  inData, UInt32 inLength )
+        { return noErr; }
     
         virtual OSStatus GetParameterValueStrings(AudioUnitScope inScope, AudioUnitParameterID inParameterID, CFArrayRef *outStrings);
     
@@ -45,14 +80,4 @@ class MT32Synth : public MusicDeviceBase {
     
         MT32Emu::Synth *synth;
         void *lastBufferData;
-    
-    private:
-    
-        AudioConverterRef audioConverterRef;
-        CAStreamBasicDescription destFormat;
-    
-        const MT32Emu::ROMImage *romImage;
-        const MT32Emu::ROMImage *pcmRomImage;
-    
 };
-

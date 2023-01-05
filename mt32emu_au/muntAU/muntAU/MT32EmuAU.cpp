@@ -2,7 +2,12 @@
 //  MT32EmuAU.cpp
 //  muntAU
 //
-//  Created by Ivan Safrin on 1/17/14.
+//  Updated 2023 jan 05 by Zenpho
+//  added CoreMidi virtual ports for timbre dump data
+//  to work around Ableton Live limitations when hosting
+//  multitimbral plugins and using MIDI Sysex messages
+//
+//  Orginal code by Ivan Safrin on 1/17/14.
 //  Copyright (c) 2014 Ivan Safrin. All rights reserved.
 //
 
@@ -11,35 +16,21 @@
 
 AUDIOCOMPONENT_ENTRY(AUMusicDeviceFactory, MT32Synth)
 
-
-static const AudioUnitParameterID kGlobalVolumeParam = 0;
-static const CFStringRef kGlobalVolumeName = CFSTR("Volume");
-
-static const AudioUnitParameterID kInstrumentParam = 1;
-static const CFStringRef kInstrumentName = CFSTR("Instrument");
-
-static const AudioUnitParameterID kReverbEnabledParam = 2;
-static const CFStringRef kReverbEnabledParamName = CFSTR("Reverb enabled");
-
-static const AudioUnitParameterID kReverbGainParam = 3;
-static const CFStringRef kReverbGainParamName = CFSTR("Reverb gain");
-
-
 MT32Synth::MT32Synth(ComponentInstance inComponentInstance)
-: MusicDeviceBase(inComponentInstance, 0, 8) {
-    CreateElements();
-    
-    Globals()->SetParameter(kGlobalVolumeParam, 2.111);
-    Globals()->SetParameter(kInstrumentParam, 0.0);
-    Globals()->SetParameter(kReverbEnabledParam, 1.0);
-    Globals()->SetParameter(kReverbGainParam, 1.0);
-    
+: MusicDeviceBase(inComponentInstance, 0, 1)
+{
+    CreateElements(); // AUBase::CreateElements()
+  
     synth = NULL;
     lastBufferData = NULL;
 }
 
-MT32Synth::~MT32Synth() {
-    
+MT32Synth::~MT32Synth()
+{
+  // tear down CoreMidi ports
+  MIDIEndpointDispose(m_endpointOut);
+  MIDIEndpointDispose(m_endpointIn);
+  MIDIClientDispose(m_client);
 }
 
 OSStatus MT32Synth::Version()
@@ -47,8 +38,8 @@ OSStatus MT32Synth::Version()
     return 0xFFFFFFFF;
 }
 
-OSStatus MT32Synth::Initialize() {
-    
+OSStatus MT32Synth::Initialize()
+{
     destFormat = GetStreamFormat(kAudioUnitScope_Output, 0);
     
     AudioStreamBasicDescription sourceDescription;
@@ -74,7 +65,6 @@ OSStatus MT32Synth::Initialize() {
         printf("Error opening MT32_PCM.ROM\n");
     }
 	
-    
     romImage = MT32Emu::ROMImage::makeROMImage(&controlROMFile);
     pcmRomImage = MT32Emu::ROMImage::makeROMImage(&pcmROMFile);
     
@@ -83,49 +73,229 @@ OSStatus MT32Synth::Initialize() {
     
     MT32Emu::ROMImage::freeROMImage(romImage);
     MT32Emu::ROMImage::freeROMImage(pcmRomImage);
-    
-    sendMIDI(0xC1, 0x00, 0x00, 0x00);
+  
     MusicDeviceBase::Initialize();
 	
     synth->setOutputGain(2.0);
-    
+    synth->setReverbOutputGain(0.0);
+    synth->setReverbEnabled(false);
+  
+    fprintf(stdout, "MUNT:MT32 configured for %d partials\n", synth->getPartialCount());
+  
+    CoreMidiPortSetup();
+  
     return noErr;
 }
 
-void MT32Synth::sendMIDI(unsigned char b0, unsigned char b1, unsigned char b2,unsigned char b3) {
-    unsigned int msg = 0;
-    msg |= ( b3 << 24);
-    msg |= ( b2 << 16);
-    msg |= ( b1 <<  8);
-    msg |= ( b0);
-    if(synth) {
-        synth->playMsg(msg);
+void MT32Synth::CoreMidiPortSetup()
+{
+    //fprintf(stdout, "MIDI:coremidi setup start\n");
+
+    OSStatus status = 0;
+  
+    if( m_client == 0 ) // missing client?
+    if ((status = MIDIClientCreate(CFSTR("MUNTAU"), NULL, NULL, &m_client))) {
+        fprintf(stdout, "MIDI:coremidi Error creating client: %d\n", (int)status);
+        return;
     }
+  
+    if( m_endpointIn == 0) // missing input endpoint?
+    if ((status = MIDIDestinationCreate(m_client, CFSTR("MT32_input"), CoreMidiRX, (void*)this, &m_endpointIn)))
+    {
+        fprintf(stdout, "MIDI:coremidi Error creating endpoint: %d\n", (int)status);
+        return;
+    }
+  
+    if( m_endpointOut == 0) // missing output endpoint?
+    if ((status = MIDISourceCreate(m_client, CFSTR("MT32_output"), &m_endpointOut))) {
+        fprintf(stdout, "MIDI:coremidi Error creating endpoint: %d\n", (int)status);
+        return;
+    }
+  
+    fprintf(stdout, "MIDI:coremidi setup finished with status %d\n", (int)status);
 }
 
-UInt32 MT32Synth::SupportedNumChannels (const AUChannelInfo** outInfo) {
+void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCon, void* srcConnRefCon)
+{
+    enum e_CMSysexState {
+        WAIT_FOR_0XF0 = 0,
+        WAIT_FOR_0XF7,
+        SEND_TO_MT32,
+    };
+    static e_CMSysexState cmSysexState = WAIT_FOR_0XF0;
+    static Byte           cmSysexData[2048];
+    static UInt32         cmSysexLen = 0;
+
+    int numPackets = packetList->numPackets;
+    MIDIPacket *packet = (MIDIPacket*)packetList->packet;
+  
+    /* debugging
+    fprintf(stdout, "MIDI:rx (numpkts %d)\n", (unsigned int)packetList->numPackets);
+    for (int pkt=0; pkt<numPackets; pkt++)
+    {
+      fprintf(stdout, "MIDI:rx %d (len %d)\n", pkt, packet->length);
+      for (int i=0; i<packet->length; i++) {
+        fprintf(stdout, "  0x%x ", packet->data[i]);
+      }
+      fprintf(stdout, "\n");
+
+      packet = MIDIPacketNext(packet);
+    }
+    */
+  
+    for (int pkt=0; pkt<numPackets; pkt++)
+    {
+      if( cmSysexState == WAIT_FOR_0XF0 )
+      {
+          if( packet->length >= 1 && packet->length <= 4 ) // not sysex and between 1-4 bytes inc status
+          {
+              unsigned int msg = 0; // build 32bit msg
+              if( packet->length >= 1 ) msg |= ( packet->data[0] );
+              if( packet->length >= 2 ) msg |= ( packet->data[1] << 8 );
+              if( packet->length >= 3 ) msg |= ( packet->data[2] << 16 );
+              if( packet->length == 4 ) msg |= ( packet->data[3] << 24 );
+
+              //fprintf(stdout, "msg: 0x%x \n", msg);
+              static_cast<MT32Synth*>(readProcRefCon)->synth->playMsg( msg );
+              packet = MIDIPacketNext(packet);
+              continue;
+          }
+      
+          if( packet->length >= 1 && packet->data[0] == 0xF0 )
+          {
+              if( (cmSysexLen + packet->length) > 2048 ) return; // abort
+            
+              //fprintf(stdout, "got %d bytes ", (unsigned int)packet->length);
+            
+              memcpy( cmSysexData, packet->data, packet->length );
+              cmSysexLen = packet->length;
+            
+              if ( cmSysexData[cmSysexLen-1] == 0xF7 )
+                cmSysexState = SEND_TO_MT32;
+              else
+              {
+                cmSysexState = WAIT_FOR_0XF7;
+                packet = MIDIPacketNext(packet);
+                continue;
+              }
+          }
+      }
+      if( cmSysexState == WAIT_FOR_0XF7 )
+      {
+          if( packet->length >= 1 )
+          {
+              if( (cmSysexLen + packet->length) > 2048 ) return; // abort
+            
+              //fprintf(stdout, "more %d bytes ", (unsigned int)packet->length);
+          
+              memcpy( cmSysexData+cmSysexLen, packet->data, packet->length );
+              cmSysexLen += packet->length;
+            
+              if ( cmSysexData[cmSysexLen-1] == 0xF7 )
+                cmSysexState = SEND_TO_MT32;
+              else
+              {
+                cmSysexState = WAIT_FOR_0XF7;
+                packet = MIDIPacketNext(packet);
+                continue;
+              }
+          }
+      }
+      if( cmSysexState == SEND_TO_MT32 )
+      {
+          /* debugging
+          fprintf(stdout, "COMPLETE SYSTEM EXCLUSIVE: ");
+          for (int i=0; i<cmSysexLen; i++) {
+            fprintf(stdout, "  0x%x ", cmSysexData[i]);
+          }
+          fprintf(stdout, "\n");
+          */
+        
+          static_cast<MT32Synth*>(readProcRefCon)->synth->playSysex( cmSysexData, cmSysexLen );
+          cmSysexState = WAIT_FOR_0XF0;
+        
+          // F0 41 10 16 11 "lookup memory"
+          // see libmt32emu memory offset comment in CoreMidiTimbreResponse()
+          if( cmSysexData[0] == 0xF0 &&
+            ( cmSysexData[1] == 0x41 ) &&
+            ( cmSysexData[2] == 0x10 ) &&
+            ( cmSysexData[3] == 0x16 ) &&
+            ( cmSysexData[4] == 0x11 ) &&
+            ( cmSysexData[5] == 0x04 ) && // timbre base address is 0x040000
+            ( cmSysexLen >= 7 ) )
+          {
+            Byte addrH = cmSysexData[6];
+            Byte addrL = cmSysexData[7];
+            static_cast<MT32Synth*>(readProcRefCon)->CoreMidiTimbreDump( addrH, addrL );
+          }
+      }
+      
+      packet = MIDIPacketNext(packet);
+  }// for();
+  
+}// func()
+
+void MT32Synth::CoreMidiTimbreDump(Byte addrH, Byte addrL)
+{
+  // build a MidiPacket for sending to a CoreMidi port
+  struct {
+    MIDITimeStamp timeStamp = 0;
+    UInt16        length = 0;
+    Byte          data[512];     // room for timbre bytes plus header
+  } tx;
+  memset(&tx, 0, sizeof(tx));
+  
+  // ROL MT32 system exclusive header for timbre response
+  uint8_t header[5] = { 0xF0, 0x41, 0x10, 0x16, 0x12 };
+  memcpy(tx.data, header, 5);
+  
+  // append timbre parameters from libmt32emu memory
+  tx.data[5] = 0x04; // timbre base address is 0x040000
+  tx.data[6] = addrH;
+  tx.data[7] = addrL;
+  
+  // libmt32emu memory offsets for timbre parameters
+  // T1 (0x04 << 16) | (0x00 << 8) | 0x00;
+  // T2 (0x04 << 16) | (0x01 << 8) | 0x76;
+  // T3 (0x04 << 16) | (0x03 << 8) | 0x6C;
+  // T4 (0x04 << 16) | (0x05 << 8) | 0x62;
+  // T5 (0x04 << 16) | (0x07 << 8) | 0x58;
+  
+  uint32_t addr = MT32EMU_MEMADDR( (0x04 << 16) | (addrH << 8) | addrL );
+  uint16_t timbreSize = sizeof(MT32Emu::TimbreParam);
+  synth->readMemory(addr, timbreSize, tx.data + 8);
+  
+  // append checksum and sysex end marker 0xF7
+  uint8_t checksum = synth->calcSysexChecksum(tx.data + 5, timbreSize + 8, 0);
+  tx.data[timbreSize + 8] = checksum;
+  tx.data[timbreSize + 9] = 0xF7;
+  tx.length = timbreSize + 10;
+  
+  /* debugging
+  fprintf(stdout, "TX DATA FOR ADDR: %04x ", addr);
+  for (int i=0; i<tx.length; i++) {
+    fprintf(stdout, "  %02x ", tx.data[i]);
+  }
+  fprintf(stdout, "\n");
+  */
+  
+  // transmit the timbre as a CoreMidi PacketList
+  MIDIPacketList txMPL;
+  MIDIPacketListInit(&txMPL);
+  MIDIPacketListAdd(&txMPL, 512, txMPL.packet, 0, tx.length, tx.data);
+  MIDIReceived(m_endpointOut, &txMPL);
+}
+
+UInt32 MT32Synth::SupportedNumChannels (const AUChannelInfo** outInfo) // audio channels
+{
     static const AUChannelInfo sChannels[2] = { {0, 1}, {0, 2} };
     if (outInfo) *outInfo = sChannels;
     return sizeof (sChannels) / sizeof (AUChannelInfo);
 }
 
-bool MT32Synth::StreamFormatWritable(	AudioUnitScope scope, AudioUnitElement element) {
-        return true;
-}
-
-OSStatus MT32Synth::HandleNoteOn(UInt8 inChannel, UInt8 inNoteNumber, UInt8 inVelocity, UInt32 inStartFrame) {
-    sendMIDI(0x91, inNoteNumber, inVelocity, 0x00);
-    return MusicDeviceBase::HandleNoteOn(inChannel, inNoteNumber, inVelocity, inStartFrame);
-}
-
-OSStatus MT32Synth::HandlePitchWheel(UInt8 inChannel, UInt8 inPitch1, UInt8 inPitch2, UInt32 inStartFrame) {
-    sendMIDI(0xE1, inPitch1, inPitch2, inStartFrame);
-    return MusicDeviceBase::HandlePitchWheel(inChannel, inPitch1, inPitch2, inStartFrame);
-}
-
-OSStatus MT32Synth::HandleNoteOff(	UInt8 inChannel, UInt8 inNoteNumber, UInt8 inVelocity, UInt32 inStartFrame) {
-    sendMIDI(0x81, inNoteNumber, inVelocity, 0x00);
-    return MusicDeviceBase::HandleNoteOff(inChannel, inNoteNumber, inVelocity, inStartFrame);
+bool MT32Synth::StreamFormatWritable(	AudioUnitScope scope, AudioUnitElement element)
+{
+    return true;
 }
 
 static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNumberDataPackets, AudioBufferList *ioData, AudioStreamPacketDescription **outDataPacketDescription, void *inUserData)
@@ -150,17 +320,18 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
     return noErr;
 }
 
-OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags, const AudioTimeStamp &inTimeStamp, UInt32 inNumberFrames) {
+OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags, const AudioTimeStamp &inTimeStamp, UInt32 inNumberFrames)
+{
 
     if(!synth) {
         return noErr;
     }
-    
+  
     AUOutputElement* outputBus = GetOutput(0);
-	outputBus->PrepareBuffer(inNumberFrames);
-	
-	AudioBufferList& outputBufList = outputBus->GetBufferList();
-	AUBufferList::ZeroBuffer(outputBufList);
+    outputBus->PrepareBuffer(inNumberFrames);
+  
+    AudioBufferList& outputBufList = outputBus->GetBufferList();
+    AUBufferList::ZeroBuffer(outputBufList);
 
     UInt32 ioOutputDataPackets = inNumberFrames * destFormat.mFramesPerPacket;
     AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
@@ -168,183 +339,27 @@ OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags, const Audi
     return noErr;
 }
 
-void MT32Synth::Cleanup() {
+void MT32Synth::Cleanup()
+{
     synth->close();
     delete synth;
     MusicDeviceBase::Cleanup();
 }
 
-OSStatus MT32Synth::SetParameter(AudioUnitParameterID inID, AudioUnitScope 	inScope, AudioUnitElement inElement, AudioUnitParameterValue	inValue, UInt32	inBufferOffsetInFrames) {
-    
-    if(inID == kGlobalVolumeParam) {
-        if(synth){
-            synth->setOutputGain(inValue);
-        }
-    } else  if(inID == kInstrumentParam) {
-        sendMIDI(0xC1, inValue, 0x00, 0x00);
-    } else if(inID == kReverbEnabledParam) {
-        if(synth){
-            synth->setReverbEnabled(inValue == 1.0);
-        }
-    } else if(inID == kReverbGainParam) {
-        if(synth){
-            synth->setReverbOutputGain(inValue);
-        }
-    }
+OSStatus MT32Synth::SetParameter(AudioUnitParameterID inID, AudioUnitScope 	inScope, AudioUnitElement inElement, AudioUnitParameterValue	inValue, UInt32	inBufferOffsetInFrames)
+{
     return MusicDeviceBase::SetParameter(inID, inScope, inElement, inValue, inBufferOffsetInFrames);
 }
 
-OSStatus MT32Synth::GetParameterValueStrings(AudioUnitScope inScope, AudioUnitParameterID inParameterID, CFArrayRef *outStrings) {
-
+OSStatus MT32Synth::GetParameterValueStrings(AudioUnitScope inScope, AudioUnitParameterID inParameterID, CFArrayRef *outStrings)
+{
     if (outStrings == NULL) return noErr;
-    
-    CFStringRef  strings [] = {
-        CFSTR("001 Acou Piano 1"),
-        CFSTR("002 Acou Piano 2"),
-        CFSTR("003 Acou Piano 3"),
-        CFSTR("004 Elec Piano 1"),
-        CFSTR("005 Elec Piano 2"),
-        CFSTR("006 Elec Piano 3"),
-        CFSTR("007 Elec Piano 4"),
-        CFSTR("008 Honkytonk"),
-        CFSTR("009 Elec Org 1"),
-        CFSTR("010 Elec Org 2"),
-        CFSTR("011 Elec Org 3"),
-        CFSTR("012 Elec Org 4"),
-        CFSTR("013 Pipe Org 1"),
-        CFSTR("014 Pipe Org 2"),
-        CFSTR("015 Pipe Org 3"),
-        CFSTR("016 Accordion"),
-        CFSTR("017 Harpsi 1"),
-        CFSTR("018 Harpsi 2"),
-        CFSTR("019 Harpsi 3"),
-        CFSTR("020 Clavi 1"),
-        CFSTR("021 Clavi 2"),
-        CFSTR("022 Clavi 3"),
-        CFSTR("023 Celesta 1"),
-        CFSTR("024 Celesta 2"),
-        CFSTR("025 Syn Brass 1"),
-        CFSTR("026 Syn Brass 2"),
-        CFSTR("027 Syn Brass 3"),
-        CFSTR("028 Syn Brass 4"),
-        CFSTR("029 Syn Bass 1"),
-        CFSTR("030 Syn Bass 2"),
-        CFSTR("031 Syn Bass 3"),
-        CFSTR("032 Syn Bass 4"),
-        CFSTR("033 Fantasy"),
-        CFSTR("034 Harmo Pan"),
-        CFSTR("035 Chorale"),
-        CFSTR("036 Glasses"),
-        CFSTR("037 Soundtrack"),
-        CFSTR("038 Atmosphere"),
-        CFSTR("039 Warm Bell"),
-        CFSTR("040 Funny Vox"),
-        CFSTR("041 Echo Bell"),
-        CFSTR("042 Ice Rain"),
-        CFSTR("043 Oboe 2001"),
-        CFSTR("044 Echo Pan"),
-        CFSTR("045 Doctor Solo"),
-        CFSTR("046 Schooldaze"),
-        CFSTR("047 Bell Singer"),
-        CFSTR("048 Square Wave"),
-        CFSTR("049 Str Sect 1"),
-        CFSTR("050 Str Sect 2"),
-        CFSTR("051 Str Sect 3"),
-        CFSTR("052 Pizzicato"),
-        CFSTR("053 Violin 1"),
-        CFSTR("054 Violin 2"),
-        CFSTR("055 Cello 1"),
-        CFSTR("056 Cello 2"),
-        CFSTR("057 Contrabass"),
-        CFSTR("058 Harp 1"),
-        CFSTR("059 Harp 2"),
-        CFSTR("060 Guitar 1"),
-        CFSTR("061 Guitar 2"),
-        CFSTR("062 Elec Gtr 1"),
-        CFSTR("063 Elec Gtr 2"),
-        CFSTR("064 Sitar"),
-        CFSTR("065 Acou Bass 1"),
-        CFSTR("066 Acou Bass 2"),
-        CFSTR("067 Elec Bass 1"),
-        CFSTR("068 Elec Bass 2"),
-        CFSTR("069 Slap Bass 1"),
-        CFSTR("070 Slap Bass 2"),
-        CFSTR("071 Fretless 1"),
-        CFSTR("072 Fretless 2"),
-        CFSTR("073 Flute 1"),
-        CFSTR("074 Flute 2"),
-        CFSTR("075 Piccolo 1"),
-        CFSTR("076 Piccolo 2"),
-        CFSTR("077 Recorder"),
-        CFSTR("078 Pan Pipes"),
-        CFSTR("079 Sax 1"),
-        CFSTR("080 Sax 2"),
-        CFSTR("081 Sax 3"),
-        CFSTR("082 Sax 4"),
-        CFSTR("083 Clarinet 1"),
-        CFSTR("084 Clarinet 2"),
-        CFSTR("085 Oboe"),
-        CFSTR("086 Engl Horn"),
-        CFSTR("087 Bassoon"),
-        CFSTR("088 Harmonica"),
-        CFSTR("089 Trumpet 1"),
-        CFSTR("090 Trumpet 2"),
-        CFSTR("091 Trombone 1"),
-        CFSTR("092 Trombone 2"),
-        CFSTR("093 Fr Horn 1"),
-        CFSTR("094 Fr Horn 2"),
-        CFSTR("095 Tuba"),
-        CFSTR("096 Brs Sect 1"),
-        CFSTR("097 Brs Sect 2"),
-        CFSTR("098 Vibe 1"),
-        CFSTR("099 Vibe 2"),
-        CFSTR("100 Syn Mallet"),
-        CFSTR("101 Wind Bell"),
-        CFSTR("102 Glock"),
-        CFSTR("103 Tube Bell"),
-        CFSTR("104 Xylophone"),
-        CFSTR("105 Marimba"),
-        CFSTR("106 Koto"),
-        CFSTR("107 Sho"),
-        CFSTR("108 Shakuhachi"),
-        CFSTR("109 Whistle 1"),
-        CFSTR("110 Whistle 2"),
-        CFSTR("111 Bottle Blow"),
-        CFSTR("112 Breathpipe"),
-        CFSTR("113 Timpani"),
-        CFSTR("114 Melodic Tom"),
-        CFSTR("115 Deep Snare"),
-        CFSTR("116 Elec Perc 1"),
-        CFSTR("117 Elec Perc 2"),
-        CFSTR("118 Taiko"),
-        CFSTR("119 Taiko Rim"),
-        CFSTR("120 Cymbal"),
-        CFSTR("121 Castanets"),
-        CFSTR("122 Triangle"),
-        CFSTR("123 Orche Hit"),
-        CFSTR("124 Telephone"),
-        CFSTR("125 Bird Tweet"),
-        CFSTR("126 One Note Jam"),
-        CFSTR("127 Water Bells"),
-        CFSTR("128 Jungle Tune")
-            };
-
-    *outStrings = CFArrayCreate (
-                                 NULL,
-                                 (const void **) strings,
-                                 (sizeof (strings) / sizeof (strings [0])),
-                                 NULL
-                                 );
-    
     return noErr;
 }
 
-OSStatus MT32Synth::RestoreState(CFPropertyListRef inData) {
+OSStatus MT32Synth::RestoreState(CFPropertyListRef inData)
+{
     MusicDeviceBase::RestoreState(inData);
-    synth->setOutputGain(Globals()->GetParameter(kGlobalVolumeParam));
-    synth->setReverbOutputGain(Globals()->GetParameter(kReverbGainParam));
-    synth->setReverbEnabled(Globals()->GetParameter(kReverbEnabledParam) == 1.0);
-    sendMIDI(0xC1, Globals()->GetParameter(kInstrumentParam), 0x00, 0x00);
     return noErr;
 }
 
@@ -352,63 +367,6 @@ OSStatus MT32Synth::GetParameterInfo(AudioUnitScope inScope,
                                      AudioUnitParameterID inParameterID,
                                      AudioUnitParameterInfo & outParameterInfo)
 {
-
-    if (inParameterID == kGlobalVolumeParam) {
-        if (inScope != kAudioUnitScope_Global) return kAudioUnitErr_InvalidScope;
-        
-        outParameterInfo.flags = SetAudioUnitParameterDisplayType (0, kAudioUnitParameterFlag_DisplaySquareRoot);
-        outParameterInfo.flags += kAudioUnitParameterFlag_IsWritable;
-        outParameterInfo.flags += kAudioUnitParameterFlag_IsReadable;
-        
-        AUBase::FillInParameterName (outParameterInfo, kGlobalVolumeName, false);
-        outParameterInfo.unit = kAudioUnitParameterUnit_LinearGain;
-        outParameterInfo.minValue = 0;
-        outParameterInfo.maxValue = 5.0;
-        outParameterInfo.defaultValue = 1.0;
-        return noErr;
-    } else if (inParameterID == kInstrumentParam) {
-        if (inScope != kAudioUnitScope_Global) return kAudioUnitErr_InvalidScope;
-        
-        outParameterInfo.flags = kAudioUnitParameterFlag_ValuesHaveStrings;
-        outParameterInfo.flags += kAudioUnitParameterFlag_IsWritable;
-        outParameterInfo.flags += kAudioUnitParameterFlag_IsReadable;
-        
-        AUBase::FillInParameterName (outParameterInfo, kInstrumentName, false);
-        outParameterInfo.unit = kAudioUnitParameterUnit_Indexed;
-        outParameterInfo.minValue = 0;
-        outParameterInfo.maxValue = 127.0;
-        outParameterInfo.defaultValue = 0.0;        
-        
-        return noErr;
-    } else if (inParameterID == kReverbEnabledParam) {
-        if (inScope != kAudioUnitScope_Global) return kAudioUnitErr_InvalidScope;
-        
-        outParameterInfo.flags += kAudioUnitParameterFlag_IsWritable;
-        outParameterInfo.flags += kAudioUnitParameterFlag_IsReadable;
-        
-        AUBase::FillInParameterName (outParameterInfo, kReverbEnabledParamName, false);
-        outParameterInfo.unit = kAudioUnitParameterUnit_Boolean;
-        outParameterInfo.minValue = 0;
-        outParameterInfo.maxValue = 1.0;
-        outParameterInfo.defaultValue = 1.0;
-        
-        return noErr;
-    } else if (inParameterID == kReverbGainParam) {
-        if (inScope != kAudioUnitScope_Global) return kAudioUnitErr_InvalidScope;
-        
-		outParameterInfo.flags = SetAudioUnitParameterDisplayType (0, kAudioUnitParameterFlag_DisplaySquareRoot);
-        outParameterInfo.flags += kAudioUnitParameterFlag_IsWritable;
-        outParameterInfo.flags += kAudioUnitParameterFlag_IsReadable;
-        
-        AUBase::FillInParameterName (outParameterInfo, kReverbGainParamName, false);
-        outParameterInfo.unit = kAudioUnitParameterUnit_LinearGain;
-        outParameterInfo.minValue = 0.0f;
-        outParameterInfo.maxValue = 5.0f;
-        outParameterInfo.defaultValue = 1.0f;
-        
-        return noErr;
-    } else {
-        return noErr;
-    }
+  return noErr;
 }
 

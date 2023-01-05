@@ -86,10 +86,11 @@
 		6D2D75EF1889B73D008262F9 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D2D75EE1889B73D008262F9 /* Carbon.framework */; };
 		6D2D75F11889B77E008262F9 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D2D75F01889B77D008262F9 /* CoreAudio.framework */; };
 		6D2D75F31889B7AC008262F9 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D2D75F21889B7AC008262F9 /* Accelerate.framework */; };
+		872DB21528FDBAA80040A669 /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 872DB21428FDBAA80040A669 /* CoreMIDI.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		6D03BE87251A92640059D0BC /* libmt32emu.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmt32emu.a; path = ../../../munt/build/mt32emu/Release/libmt32emu.a; sourceTree = "<group>"; };
+		6D03BE87251A92640059D0BC /* libmt32emu.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmt32emu.a; path = ../../libmt32emu/libmt32emu.a; sourceTree = "<group>"; };
 		6D2D74C918899E60008262F9 /* muntAU.component */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = muntAU.component; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D2D74CC18899E60008262F9 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		6D2D74CF18899E60008262F9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -269,6 +270,7 @@
 		6D2D75EE1889B73D008262F9 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		6D2D75F01889B77D008262F9 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		6D2D75F21889B7AC008262F9 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		872DB21428FDBAA80040A669 /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -276,6 +278,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				872DB21528FDBAA80040A669 /* CoreMIDI.framework in Frameworks */,
 				6D2D75F31889B7AC008262F9 /* Accelerate.framework in Frameworks */,
 				6D2D75F11889B77E008262F9 /* CoreAudio.framework in Frameworks */,
 				6D2D75EF1889B73D008262F9 /* Carbon.framework in Frameworks */,
@@ -310,6 +313,7 @@
 		6D2D74CB18899E60008262F9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				872DB21428FDBAA80040A669 /* CoreMIDI.framework */,
 				6D2D75F21889B7AC008262F9 /* Accelerate.framework */,
 				6D2D75F01889B77D008262F9 /* CoreAudio.framework */,
 				6D2D75EE1889B73D008262F9 /* Carbon.framework */,
@@ -613,8 +617,7 @@
 				ORGANIZATIONNAME = "Ivan Safrin";
 				TargetAttributes = {
 					6D2D74C818899E60008262F9 = {
-						DevelopmentTeam = 8R477NNJLJ;
-						ProvisioningStyle = Automatic;
+						ProvisioningStyle = Manual;
 					};
 				};
 			};
@@ -753,6 +756,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = (
+					i386,
+					x86_64,
+				);
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -781,8 +788,9 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
+				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Debug;
 		};
@@ -790,6 +798,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = (
+					i386,
+					x86_64,
+				);
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -814,25 +826,29 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				SDKROOT = macosx;
+				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Release;
 		};
 		6D2D74DC18899E60008262F9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD)";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				ARCHS = (
+					i386,
+					x86_64,
+				);
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 8R477NNJLJ;
+				DEVELOPMENT_TEAM = "";
 				EXPORTED_SYMBOLS_FILE = "$(SRCROOT)/$(PROJECT_NAME)/AU.exp";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "muntAU/muntAU-Prefix.pch";
 				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../munt/build/mt32emu/include\"";
 				INFOPLIST_FILE = "muntAU/muntAU-Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
-				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../../munt/build/mt32emu/Release\"";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../libmt32emu\"";
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-bundle";
 				OTHER_REZFLAGS = "-d i386_$i386 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I /DeveloperExtras/CoreAudio/AudioUnits/AUPublic/AUBase";
@@ -844,7 +860,7 @@
 				);
 				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = /usr/local/include;
-				VALID_ARCHS = x86_64;
+				VALID_ARCHS = "i386 x86_64";
 				WRAPPER_EXTENSION = component;
 			};
 			name = Debug;
@@ -852,19 +868,22 @@
 		6D2D74DD18899E60008262F9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD)";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				ARCHS = (
+					i386,
+					x86_64,
+				);
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 8R477NNJLJ;
+				DEVELOPMENT_TEAM = "";
 				EXPORTED_SYMBOLS_FILE = "$(SRCROOT)/$(PROJECT_NAME)/AU.exp";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "muntAU/muntAU-Prefix.pch";
 				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../munt/build/mt32emu/include\"";
 				INFOPLIST_FILE = "muntAU/muntAU-Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
-				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../../munt/build/mt32emu/Release\"";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../libmt32emu\"";
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-bundle";
 				OTHER_REZFLAGS = "-d i386_$i386 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I /DeveloperExtras/CoreAudio/AudioUnits/AUPublic/AUBase";
@@ -876,7 +895,7 @@
 				);
 				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = /usr/local/include;
-				VALID_ARCHS = x86_64;
+				VALID_ARCHS = "i386 x86_64";
 				WRAPPER_EXTENSION = component;
 			};
 			name = Release;

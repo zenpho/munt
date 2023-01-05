@@ -6,7 +6,13 @@
 	<array>
 		<dict>
 			<key>description</key>
-			<string>Roland MT-32 emulator</string>
+			<string>Roland MT-32 emulator
+
+
+
+
+Send all MIDI (including system exclusive data) to the CoreMidi port named MT32_input.
+All MIDI data sent to the DAW host input is deliberately ignored.</string>
 			<key>factoryFunction</key>
 			<string>MT32SynthFactory</string>
 			<key>manufacturer</key>
@@ -36,13 +42,13 @@
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.1 2023Jan05</string>
 	<key>CFBundleSignature</key>
 	<string>MUNT</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2014 Ivan Safrin</string>
+	<string>Zenpho and Ivan Safrin</string>
 	<key>NSPrincipalClass</key>
 	<string></string>
 </dict>
