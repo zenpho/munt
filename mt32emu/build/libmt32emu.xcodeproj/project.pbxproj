@@ -1,0 +1,401 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		03B72D2D8E07498F989280A3 /* Poly.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D940246705B7452B9F7E2964 /* Poly.cpp */; };
+		09C7EE5620CA46CFB4FDBA0F /* FileStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 06F4719EBB8948C98BC0BAB0 /* FileStream.cpp */; };
+		13DFDAECC9B34FCF93076F19 /* Synth.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F7C851005BFF440591CA7F5C /* Synth.cpp */; };
+		312C8F4961CD4486B6E95801 /* LA32Ramp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 209072315F3E458FABB78EBA /* LA32Ramp.cpp */; };
+		4B7BA8D2141D4DD29BA040B2 /* PartialManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EF0E6DD68607442885C5AC8C /* PartialManager.cpp */; };
+		5184703CF73C413B95AB9929 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7BF4141F10E54E15960ED4EE /* File.cpp */; };
+		5B20B3806BDF4B9AA8ADFA72 /* ROMInfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C8A450FA7844E44BA334AC6 /* ROMInfo.cpp */; };
+		673C2F5096E44A47AC6027F8 /* Partial.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A60B3C4927BA4732985938DB /* Partial.cpp */; };
+		6B2B7619B0F740CE912FC91E /* BReverbModel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D8A365E0DEA4F76AA7BBB1B /* BReverbModel.cpp */; };
+		6BABA93B07A54303A3000FDD /* TVF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6A722B961CD94C708DE749C7 /* TVF.cpp */; };
+		77A479A225EC433597113175 /* TVP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 03172A1700D24AA08022C13E /* TVP.cpp */; };
+		A09E1181E47943CDB2A29CBB /* Part.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18AA9FB5D3EB478DB8605E6B /* Part.cpp */; };
+		ACF0D7C2C9364AFC9040D436 /* Tables.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6C820C07DB984F0AAE683464 /* Tables.cpp */; };
+		AD413CF2D74C44A197DD4DFB /* sha1.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A0722365612B492289A2D583 /* sha1.cpp */; };
+		B39BD13F2BE94358A7CC1913 /* TVA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1B4E67DDDEA5412A9580EF03 /* TVA.cpp */; };
+		B5DFDDC2E075434090FCE4F2 /* LA32WaveGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82E11F22795245C79E3E0FFC /* LA32WaveGenerator.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		03172A1700D24AA08022C13E /* TVP.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = TVP.cpp; path = src/TVP.cpp; sourceTree = SOURCE_ROOT; };
+		06F4719EBB8948C98BC0BAB0 /* FileStream.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = FileStream.cpp; path = src/FileStream.cpp; sourceTree = SOURCE_ROOT; };
+		0D8A365E0DEA4F76AA7BBB1B /* BReverbModel.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = BReverbModel.cpp; path = src/BReverbModel.cpp; sourceTree = SOURCE_ROOT; };
+		18AA9FB5D3EB478DB8605E6B /* Part.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = Part.cpp; path = src/Part.cpp; sourceTree = SOURCE_ROOT; };
+		1B4E67DDDEA5412A9580EF03 /* TVA.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = TVA.cpp; path = src/TVA.cpp; sourceTree = SOURCE_ROOT; };
+		209072315F3E458FABB78EBA /* LA32Ramp.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = LA32Ramp.cpp; path = src/LA32Ramp.cpp; sourceTree = SOURCE_ROOT; };
+		5C8A450FA7844E44BA334AC6 /* ROMInfo.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = ROMInfo.cpp; path = src/ROMInfo.cpp; sourceTree = SOURCE_ROOT; };
+		6A722B961CD94C708DE749C7 /* TVF.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = TVF.cpp; path = src/TVF.cpp; sourceTree = SOURCE_ROOT; };
+		6C820C07DB984F0AAE683464 /* Tables.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = Tables.cpp; path = src/Tables.cpp; sourceTree = SOURCE_ROOT; };
+		7BF4141F10E54E15960ED4EE /* File.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = File.cpp; path = src/File.cpp; sourceTree = SOURCE_ROOT; };
+		82E11F22795245C79E3E0FFC /* LA32WaveGenerator.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = LA32WaveGenerator.cpp; path = src/LA32WaveGenerator.cpp; sourceTree = SOURCE_ROOT; };
+		92069C892A0942B3A73EA390 /* libmt32emu.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libmt32emu.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0722365612B492289A2D583 /* sha1.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = sha1.cpp; path = src/sha1/sha1.cpp; sourceTree = SOURCE_ROOT; };
+		A60B3C4927BA4732985938DB /* Partial.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = Partial.cpp; path = src/Partial.cpp; sourceTree = SOURCE_ROOT; };
+		D940246705B7452B9F7E2964 /* Poly.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = Poly.cpp; path = src/Poly.cpp; sourceTree = SOURCE_ROOT; };
+		EF0E6DD68607442885C5AC8C /* PartialManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = PartialManager.cpp; path = src/PartialManager.cpp; sourceTree = SOURCE_ROOT; };
+		F7C851005BFF440591CA7F5C /* Synth.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = Synth.cpp; path = src/Synth.cpp; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		06378ACED63D4A8292CD4534 = {
+			isa = PBXGroup;
+			children = (
+				CF7ED85A4C114466B128A9FB /* mt32emu */,
+				88BD69C1D0334DEFB907FA75 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		0C26B623F3EC4B8FAF104077 /* Source Files */ = {
+			isa = PBXGroup;
+			children = (
+				0D8A365E0DEA4F76AA7BBB1B /* BReverbModel.cpp */,
+				7BF4141F10E54E15960ED4EE /* File.cpp */,
+				06F4719EBB8948C98BC0BAB0 /* FileStream.cpp */,
+				209072315F3E458FABB78EBA /* LA32Ramp.cpp */,
+				82E11F22795245C79E3E0FFC /* LA32WaveGenerator.cpp */,
+				18AA9FB5D3EB478DB8605E6B /* Part.cpp */,
+				A60B3C4927BA4732985938DB /* Partial.cpp */,
+				EF0E6DD68607442885C5AC8C /* PartialManager.cpp */,
+				D940246705B7452B9F7E2964 /* Poly.cpp */,
+				5C8A450FA7844E44BA334AC6 /* ROMInfo.cpp */,
+				F7C851005BFF440591CA7F5C /* Synth.cpp */,
+				1B4E67DDDEA5412A9580EF03 /* TVA.cpp */,
+				6A722B961CD94C708DE749C7 /* TVF.cpp */,
+				03172A1700D24AA08022C13E /* TVP.cpp */,
+				6C820C07DB984F0AAE683464 /* Tables.cpp */,
+				A0722365612B492289A2D583 /* sha1.cpp */,
+			);
+			name = "Source Files";
+			sourceTree = "<group>";
+		};
+		88BD69C1D0334DEFB907FA75 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				92069C892A0942B3A73EA390 /* libmt32emu.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CF7ED85A4C114466B128A9FB /* mt32emu */ = {
+			isa = PBXGroup;
+			children = (
+				0C26B623F3EC4B8FAF104077 /* Source Files */,
+			);
+			name = mt32emu;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4C661297E6CB4DA8B1E57AF0 /* mt32emu */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1FC60804D0AB45249BFA19F0 /* Build configuration list for PBXNativeTarget "mt32emu" */;
+			buildPhases = (
+				EFDEE9C89F65432587A3BB83 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = mt32emu;
+			productName = mt32emu;
+			productReference = 92069C892A0942B3A73EA390 /* libmt32emu.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		2714DF1CF4E84D88B4AF1868 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1010;
+			};
+			buildConfigurationList = 9F3EA361EAAB4CF4B80BCE39 /* Build configuration list for PBXProject "libmt32emu" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 06378ACED63D4A8292CD4534;
+			projectDirPath = ../;
+			projectRoot = "";
+			targets = (
+				4C661297E6CB4DA8B1E57AF0 /* mt32emu */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EFDEE9C89F65432587A3BB83 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6B2B7619B0F740CE912FC91E /* BReverbModel.cpp in Sources */,
+				5184703CF73C413B95AB9929 /* File.cpp in Sources */,
+				09C7EE5620CA46CFB4FDBA0F /* FileStream.cpp in Sources */,
+				312C8F4961CD4486B6E95801 /* LA32Ramp.cpp in Sources */,
+				B5DFDDC2E075434090FCE4F2 /* LA32WaveGenerator.cpp in Sources */,
+				A09E1181E47943CDB2A29CBB /* Part.cpp in Sources */,
+				673C2F5096E44A47AC6027F8 /* Partial.cpp in Sources */,
+				4B7BA8D2141D4DD29BA040B2 /* PartialManager.cpp in Sources */,
+				03B72D2D8E07498F989280A3 /* Poly.cpp in Sources */,
+				5B20B3806BDF4B9AA8ADFA72 /* ROMInfo.cpp in Sources */,
+				13DFDAECC9B34FCF93076F19 /* Synth.cpp in Sources */,
+				B39BD13F2BE94358A7CC1913 /* TVA.cpp in Sources */,
+				6BABA93B07A54303A3000FDD /* TVF.cpp in Sources */,
+				77A479A225EC433597113175 /* TVP.cpp in Sources */,
+				ACF0D7C2C9364AFC9040D436 /* Tables.cpp in Sources */,
+				AD413CF2D74C44A197DD4DFB /* sha1.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		210AAB1ECB2A4E7C8676D92E /* RelWithDebInfo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					i386,
+					x86_64,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = /Applications/Xcode101.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk;
+				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build/build";
+			};
+			name = RelWithDebInfo;
+		};
+		4E1EB2BC21B144618F969122 /* MinSizeRel */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					i386,
+					x86_64,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = /Applications/Xcode101.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk;
+				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build/build";
+			};
+			name = MinSizeRel;
+		};
+		58C7C24CFDB64F33BBE804DB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LIBRARY = "compiler-default";
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_SUFFIX = .a;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_PREPROCESSOR_DEFINITIONS = "'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'";
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				INSTALL_PATH = "";
+				LIBRARY_STYLE = STATIC;
+				OTHER_CPLUSPLUSFLAGS = (
+					"-DNDEBUG",
+					"-Wall",
+					"-Wextra",
+					"-Wnon-virtual-dtor",
+					"-Wshadow",
+					"-ansi",
+					"-pedantic",
+				);
+				OTHER_LIBTOOLFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = mt32emu;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+					"$(inherited)",
+				);
+			};
+			name = Release;
+		};
+		604134E57DD040C19CD1115B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					i386,
+					x86_64,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = /Applications/Xcode101.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk;
+				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build/build";
+			};
+			name = Debug;
+		};
+		697D543FAAE14C56AD51A12F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					i386,
+					x86_64,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = /Applications/Xcode101.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk;
+				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build/build";
+			};
+			name = Release;
+		};
+		A79B59AA00E341A5BC339D2E /* RelWithDebInfo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LIBRARY = "compiler-default";
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_SUFFIX = .a;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 2;
+				GCC_PREPROCESSOR_DEFINITIONS = "'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'";
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				INSTALL_PATH = "";
+				LIBRARY_STYLE = STATIC;
+				OTHER_CPLUSPLUSFLAGS = (
+					"-DNDEBUG",
+					"-Wall",
+					"-Wextra",
+					"-Wnon-virtual-dtor",
+					"-Wshadow",
+					"-ansi",
+					"-pedantic",
+				);
+				OTHER_LIBTOOLFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = mt32emu;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+					"$(inherited)",
+				);
+			};
+			name = RelWithDebInfo;
+		};
+		B1E351C77E2043FE8B0DF936 /* MinSizeRel */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LIBRARY = "compiler-default";
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_SUFFIX = .a;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = "'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'";
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				INSTALL_PATH = "";
+				LIBRARY_STYLE = STATIC;
+				OTHER_CPLUSPLUSFLAGS = (
+					"-DNDEBUG",
+					"-Wall",
+					"-Wextra",
+					"-Wnon-virtual-dtor",
+					"-Wshadow",
+					"-ansi",
+					"-pedantic",
+				);
+				OTHER_LIBTOOLFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = mt32emu;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+					"$(inherited)",
+				);
+			};
+			name = MinSizeRel;
+		};
+		CA8B21F1B01A453DBF089266 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LIBRARY = "compiler-default";
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_SUFFIX = .a;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = "'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'";
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				INSTALL_PATH = "";
+				LIBRARY_STYLE = STATIC;
+				OTHER_CPLUSPLUSFLAGS = (
+					"-Wall",
+					"-Wextra",
+					"-Wnon-virtual-dtor",
+					"-Wshadow",
+					"-ansi",
+					"-pedantic",
+				);
+				OTHER_LIBTOOLFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = mt32emu;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+					"$(inherited)",
+				);
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1FC60804D0AB45249BFA19F0 /* Build configuration list for PBXNativeTarget "mt32emu" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA8B21F1B01A453DBF089266 /* Debug */,
+				58C7C24CFDB64F33BBE804DB /* Release */,
+				B1E351C77E2043FE8B0DF936 /* MinSizeRel */,
+				A79B59AA00E341A5BC339D2E /* RelWithDebInfo */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9F3EA361EAAB4CF4B80BCE39 /* Build configuration list for PBXProject "libmt32emu" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				604134E57DD040C19CD1115B /* Debug */,
+				697D543FAAE14C56AD51A12F /* Release */,
+				4E1EB2BC21B144618F969122 /* MinSizeRel */,
+				210AAB1ECB2A4E7C8676D92E /* RelWithDebInfo */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 2714DF1CF4E84D88B4AF1868 /* Project object */;
+}
