@@ -16,6 +16,12 @@
 
 AUDIOCOMPONENT_ENTRY(AUMusicDeviceFactory, MT32Synth)
 
+#define TIMBRE1_DICTIONARY_KEY   CFSTR("timbre1.syx")
+#define TIMBRE2_DICTIONARY_KEY   CFSTR("timbre2.syx")
+#define TIMBRE3_DICTIONARY_KEY   CFSTR("timbre3.syx")
+#define TIMBRE4_DICTIONARY_KEY   CFSTR("timbre4.syx")
+#define TIMBRE5_DICTIONARY_KEY   CFSTR("timbre5.syx")
+
 MT32Synth::MT32Synth(ComponentInstance inComponentInstance)
 : MusicDeviceBase(inComponentInstance, 0, 1)
 {
@@ -41,7 +47,7 @@ OSStatus MT32Synth::Version()
 OSStatus MT32Synth::Initialize()
 {
     destFormat = GetStreamFormat(kAudioUnitScope_Output, 0);
-    
+  
     AudioStreamBasicDescription sourceDescription;
     sourceDescription.mSampleRate = 32000;
     sourceDescription.mBytesPerFrame = 4;
@@ -52,30 +58,30 @@ OSStatus MT32Synth::Initialize()
     sourceDescription.mFormatFlags = kAudioFormatFlagIsSignedInteger;
     sourceDescription.mFramesPerPacket = 1;
     sourceDescription.mReserved = 0;
-    
+  
     AudioConverterNew(&sourceDescription, &destFormat, &audioConverterRef);
     MT32Emu::FileStream controlROMFile;
     MT32Emu::FileStream pcmROMFile;
-    
+  
     if(!controlROMFile.open("/Library/MT32/MT32_CONTROL.ROM")) {
         printf("Error opening MT32_CONTROL.ROM\n");
     }
-    
+  
     if(!pcmROMFile.open("/Library/MT32/MT32_PCM.ROM")) {
         printf("Error opening MT32_PCM.ROM\n");
     }
-	
+  
     romImage = MT32Emu::ROMImage::makeROMImage(&controlROMFile);
     pcmRomImage = MT32Emu::ROMImage::makeROMImage(&pcmROMFile);
-    
+  
     synth = new MT32Emu::Synth();
     synth->open(*romImage, *pcmRomImage);
-    
+  
     MT32Emu::ROMImage::freeROMImage(romImage);
     MT32Emu::ROMImage::freeROMImage(pcmRomImage);
   
     MusicDeviceBase::Initialize();
-	
+  
     synth->setOutputGain(2.0);
     synth->setReverbOutputGain(0.0);
     synth->setReverbEnabled(false);
@@ -98,6 +104,11 @@ void MT32Synth::CoreMidiPortSetup()
         fprintf(stdout, "MIDI:coremidi Error creating client: %d\n", (int)status);
         return;
     }
+
+    // TODO - iterate over existing virtual port names first
+    //      - give any port name we create a unique id
+    //      - show the unique id as an AudioUnitParameter value for our user
+    //      - error handling - autoincrement when the user sets a value that would clash
   
     if( m_endpointIn == 0) // missing input endpoint?
     if ((status = MIDIDestinationCreate(m_client, CFSTR("MT32_input"), CoreMidiRX, (void*)this, &m_endpointIn)))
@@ -226,7 +237,7 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
           {
             Byte addrH = cmSysexData[6];
             Byte addrL = cmSysexData[7];
-            static_cast<MT32Synth*>(readProcRefCon)->CoreMidiTimbreDump( addrH, addrL );
+            static_cast<MT32Synth*>(readProcRefCon)->CoreMidiTimbreTX( addrH, addrL );
           }
       }
       
@@ -235,7 +246,49 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
   
 }// func()
 
-void MT32Synth::CoreMidiTimbreDump(Byte addrH, Byte addrL)
+// getSysexTimbre() writes timbre sysex dump with 0xF0 and 0xF7 to buffer
+// - we trust buffer allocated correctly
+// - returns number of bytes
+uint16_t MT32Synth::getSysexTimbre(Byte addrH, Byte addrL, Byte* buffer)
+{
+  // libmt32emu memory offsets for timbre parameters
+  // T1 (0x04 << 16) | (0x00 << 8) | 0x00;
+  // T2 (0x04 << 16) | (0x01 << 8) | 0x76;
+  // T3 (0x04 << 16) | (0x03 << 8) | 0x6C;
+  // T4 (0x04 << 16) | (0x05 << 8) | 0x62;
+  // T5 (0x04 << 16) | (0x07 << 8) | 0x58;
+
+  // ROL MT32 system exclusive header for timbre response
+  uint8_t header[5] = { 0xF0, 0x41, 0x10, 0x16, 0x12 };
+  memcpy(buffer, header, 5);
+  
+  // append timbre parameters from libmt32emu memory
+  buffer[5] = 0x04; // timbre base address is 0x040000
+  buffer[6] = addrH;
+  buffer[7] = addrL;
+  
+  uint32_t addr = MT32EMU_MEMADDR( (0x04 << 16) | (addrH << 8) | addrL );
+  uint16_t timbreSize = sizeof(MT32Emu::TimbreParam);
+  synth->readMemory(addr, timbreSize, buffer + 8);
+  
+  // append checksum and sysex end marker 0xF7
+  uint8_t checksum = synth->calcSysexChecksum(buffer + 5, timbreSize + 8, 0);
+  buffer[timbreSize + 8] = checksum;
+  buffer[timbreSize + 9] = 0xF7;
+  uint16_t bufferLen = timbreSize + 10;
+  
+  /* //debugging
+  fprintf(stdout, "DATA FOR ADDR: %04x \n", addr);
+  for (int i=0; i<bufferLen; i++) {
+    fprintf(stdout, " %02x ", buffer[i]);
+  }
+  fprintf(stdout, "\n");
+  */
+  
+  return bufferLen;
+}
+
+void MT32Synth::CoreMidiTimbreTX(Byte addrH, Byte addrL)
 {
   // build a MidiPacket for sending to a CoreMidi port
   struct {
@@ -245,39 +298,7 @@ void MT32Synth::CoreMidiTimbreDump(Byte addrH, Byte addrL)
   } tx;
   memset(&tx, 0, sizeof(tx));
   
-  // ROL MT32 system exclusive header for timbre response
-  uint8_t header[5] = { 0xF0, 0x41, 0x10, 0x16, 0x12 };
-  memcpy(tx.data, header, 5);
-  
-  // append timbre parameters from libmt32emu memory
-  tx.data[5] = 0x04; // timbre base address is 0x040000
-  tx.data[6] = addrH;
-  tx.data[7] = addrL;
-  
-  // libmt32emu memory offsets for timbre parameters
-  // T1 (0x04 << 16) | (0x00 << 8) | 0x00;
-  // T2 (0x04 << 16) | (0x01 << 8) | 0x76;
-  // T3 (0x04 << 16) | (0x03 << 8) | 0x6C;
-  // T4 (0x04 << 16) | (0x05 << 8) | 0x62;
-  // T5 (0x04 << 16) | (0x07 << 8) | 0x58;
-  
-  uint32_t addr = MT32EMU_MEMADDR( (0x04 << 16) | (addrH << 8) | addrL );
-  uint16_t timbreSize = sizeof(MT32Emu::TimbreParam);
-  synth->readMemory(addr, timbreSize, tx.data + 8);
-  
-  // append checksum and sysex end marker 0xF7
-  uint8_t checksum = synth->calcSysexChecksum(tx.data + 5, timbreSize + 8, 0);
-  tx.data[timbreSize + 8] = checksum;
-  tx.data[timbreSize + 9] = 0xF7;
-  tx.length = timbreSize + 10;
-  
-  /* debugging
-  fprintf(stdout, "TX DATA FOR ADDR: %04x ", addr);
-  for (int i=0; i<tx.length; i++) {
-    fprintf(stdout, "  %02x ", tx.data[i]);
-  }
-  fprintf(stdout, "\n");
-  */
+  tx.length = getSysexTimbre(addrH, addrL, tx.data);
   
   // transmit the timbre as a CoreMidi PacketList
   MIDIPacketList txMPL;
@@ -293,7 +314,7 @@ UInt32 MT32Synth::SupportedNumChannels (const AUChannelInfo** outInfo) // audio 
     return sizeof (sChannels) / sizeof (AUChannelInfo);
 }
 
-bool MT32Synth::StreamFormatWritable(	AudioUnitScope scope, AudioUnitElement element)
+bool MT32Synth::StreamFormatWritable(  AudioUnitScope scope, AudioUnitElement element)
 {
     return true;
 }
@@ -305,18 +326,18 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
     if(_this->lastBufferData) {
         free(_this->lastBufferData);
     }
-    
+  
     unsigned int amountToWrite = *ioNumberDataPackets;
 
     unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2;
     MT32Emu::Bit16s *data = (MT32Emu::Bit16s*) malloc(dataSize);
     _this->synth->render(data, amountToWrite);
-    
+  
     ioData->mNumberBuffers = 1;
     ioData->mBuffers[0].mData = data;
     ioData->mBuffers[0].mDataByteSize = dataSize;
     _this->lastBufferData = data;
-    
+  
     return noErr;
 }
 
@@ -346,7 +367,7 @@ void MT32Synth::Cleanup()
     MusicDeviceBase::Cleanup();
 }
 
-OSStatus MT32Synth::SetParameter(AudioUnitParameterID inID, AudioUnitScope 	inScope, AudioUnitElement inElement, AudioUnitParameterValue	inValue, UInt32	inBufferOffsetInFrames)
+OSStatus MT32Synth::SetParameter(AudioUnitParameterID inID, AudioUnitScope   inScope, AudioUnitElement inElement, AudioUnitParameterValue  inValue, UInt32  inBufferOffsetInFrames)
 {
     return MusicDeviceBase::SetParameter(inID, inScope, inElement, inValue, inBufferOffsetInFrames);
 }
@@ -357,9 +378,89 @@ OSStatus MT32Synth::GetParameterValueStrings(AudioUnitScope inScope, AudioUnitPa
     return noErr;
 }
 
+OSStatus MT32Synth::SaveState(CFPropertyListRef* outData)
+{
+    OSStatus err = MusicDeviceBase::SaveState(outData);
+  
+    if (err != noErr)
+            return err;
+  
+    assert (CFGetTypeID (*outData) == CFDictionaryGetTypeID());
+  
+    CFMutableDictionaryRef dict = (CFMutableDictionaryRef) *outData;
+    CFDataRef dictValue = 0;
+
+    Byte timbreSyx[512];
+    memset(timbreSyx, 0, 512);
+  
+    //
+    const uint8_t LOOKUP_SIZE = 5;
+    struct lookup_t {
+      CFStringRef dictKey;
+  
+      // @see getSysexTimbre() for libmt32emu timbre addr map comment
+      uint8_t addrH;
+      uint8_t addrL;
+    };
+  
+    struct lookup_t lookup[LOOKUP_SIZE] = {
+      {TIMBRE1_DICTIONARY_KEY, 0x00, 0x00}, //addrH first
+      {TIMBRE2_DICTIONARY_KEY, 0x01, 0x76},
+      {TIMBRE3_DICTIONARY_KEY, 0x03, 0x6C},
+      {TIMBRE4_DICTIONARY_KEY, 0x05, 0x62},
+      {TIMBRE5_DICTIONARY_KEY, 0x07, 0x58}
+    };
+  
+    for(uint8_t i=0; i<LOOKUP_SIZE; i++)
+    {
+      memset(timbreSyx, 0, 512);
+      uint16_t syxLen = getSysexTimbre(lookup[i].addrH, lookup[i].addrL, timbreSyx);
+      dictValue = CFDataCreate
+        (kCFAllocatorDefault, (const Byte*) timbreSyx, (CFIndex) syxLen );
+      CFDictionarySetValue (dict, lookup[i].dictKey, dictValue);
+      CFRelease(dictValue);
+    }
+
+    return noErr;
+}
+
+void MT32Synth::RestoreStateAsSysex( CFDataRef data )
+{
+    if (data == 0) return; // skip if not found
+  
+    const int numBytes = (int) CFDataGetLength (data);
+    if (numBytes != 256) return; // must be 256 bytes incl 0xF0 and 0xF7
+  
+    //fprintf(stdout, "restoring %d bytes\n", numBytes);
+
+    // send to libmt32emu
+    synth->playSysex( CFDataGetBytePtr (data), numBytes );
+}
+
 OSStatus MT32Synth::RestoreState(CFPropertyListRef inData)
 {
     MusicDeviceBase::RestoreState(inData);
+  
+    CFDictionaryRef dict = (CFDictionaryRef) inData;
+    CFDataRef data = 0;
+  
+    // TODO - cleanup copy-paste-repeat
+  
+    if (CFDictionaryGetValueIfPresent (dict, TIMBRE1_DICTIONARY_KEY, (const void**) &data))
+      RestoreStateAsSysex( data );
+  
+    if (CFDictionaryGetValueIfPresent (dict, TIMBRE2_DICTIONARY_KEY, (const void**) &data))
+       RestoreStateAsSysex(data);
+  
+    if (CFDictionaryGetValueIfPresent (dict, TIMBRE3_DICTIONARY_KEY, (const void**) &data))
+      RestoreStateAsSysex( data );
+  
+    if (CFDictionaryGetValueIfPresent (dict, TIMBRE4_DICTIONARY_KEY, (const void**) &data))
+       RestoreStateAsSysex(data);
+  
+    if (CFDictionaryGetValueIfPresent (dict, TIMBRE5_DICTIONARY_KEY, (const void**) &data))
+      RestoreStateAsSysex( data );
+
     return noErr;
 }
 
@@ -369,4 +470,3 @@ OSStatus MT32Synth::GetParameterInfo(AudioUnitScope inScope,
 {
   return noErr;
 }
-
