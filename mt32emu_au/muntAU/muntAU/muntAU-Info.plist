@@ -42,7 +42,7 @@ All MIDI data sent to the DAW host input is deliberately ignored.</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.1 2023Jan05</string>
+	<string>1.2 2023Jan08</string>
 	<key>CFBundleSignature</key>
 	<string>MUNT</string>
 	<key>CFBundleVersion</key>
