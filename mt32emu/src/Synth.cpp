@@ -1416,7 +1416,7 @@ void MidiEventQueue::dropMidiEvent() {
 	}
 }
 
-void Synth::render(Sample *stream, Bit32u len) {
+void Synth::render(Sample *stream, Bit32u len, Bit8s ownerPart) {
 	Sample tmpNonReverbLeft[MAX_SAMPLES_PER_RUN];
 	Sample tmpNonReverbRight[MAX_SAMPLES_PER_RUN];
 	Sample tmpReverbDryLeft[MAX_SAMPLES_PER_RUN];
@@ -1426,7 +1426,7 @@ void Synth::render(Sample *stream, Bit32u len) {
 
 	while (len > 0) {
 		Bit32u thisLen = len > MAX_SAMPLES_PER_RUN ? MAX_SAMPLES_PER_RUN : len;
-		renderStreams(tmpNonReverbLeft, tmpNonReverbRight, tmpReverbDryLeft, tmpReverbDryRight, tmpReverbWetLeft, tmpReverbWetRight, thisLen);
+		renderStreams(ownerPart, tmpNonReverbLeft, tmpNonReverbRight, tmpReverbDryLeft, tmpReverbDryRight, tmpReverbWetLeft, tmpReverbWetRight, thisLen);
 		for (Bit32u i = 0; i < thisLen; i++) {
 #if MT32EMU_USE_FLOAT_SAMPLES
 			*(stream++) = tmpNonReverbLeft[i] + tmpReverbDryLeft[i] + tmpReverbWetLeft[i];
@@ -1440,7 +1440,7 @@ void Synth::render(Sample *stream, Bit32u len) {
 	}
 }
 
-void Synth::renderStreams(Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len) {
+void Synth::renderStreams(Bit8s ownerPart, Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len) {
 	while (len > 0) {
 		// We need to ensure zero-duration notes will play so add minimum 1-sample delay.
 		Bit32u thisLen = 1;
@@ -1466,7 +1466,7 @@ void Synth::renderStreams(Sample *nonReverbLeft, Sample *nonReverbRight, Sample 
 				}
 			}
 		}
-		doRenderStreams(nonReverbLeft, nonReverbRight, reverbDryLeft, reverbDryRight, reverbWetLeft, reverbWetRight, thisLen);
+		doRenderStreams(ownerPart, nonReverbLeft, nonReverbRight, reverbDryLeft, reverbDryRight, reverbWetLeft, reverbWetRight, thisLen);
 		advanceStreamPosition(nonReverbLeft, thisLen);
 		advanceStreamPosition(nonReverbRight, thisLen);
 		advanceStreamPosition(reverbDryLeft, thisLen);
@@ -1524,7 +1524,8 @@ void Synth::convertSamplesToOutput(Sample *buffer, Bit32u len, bool reverb) {
 #endif
 }
 
-void Synth::doRenderStreams(Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len) {
+void Synth::partRenderStreams(Bit8s ownerPart, Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len)
+{
 	// Even if LA32 output isn't desired, we proceed anyway with temp buffers
 	Sample tmpBufNonReverbLeft[MAX_SAMPLES_PER_RUN], tmpBufNonReverbRight[MAX_SAMPLES_PER_RUN];
 	if (nonReverbLeft == NULL) nonReverbLeft = tmpBufNonReverbLeft;
@@ -1541,8 +1542,14 @@ void Synth::doRenderStreams(Sample *nonReverbLeft, Sample *nonReverbRight, Sampl
 
 	if (isEnabled) {
 		for (unsigned int i = 0; i < getPartialCount(); i++) {
+      
+      // ZPO
+      if( ownerPart >= 0 &&
+          ownerPart != partialManager->getPartial(i)->getOwnerPart()
+        ) continue;
+  
 			if (partialManager->shouldReverb(i)) {
-				partialManager->produceOutput(i, reverbDryLeft, reverbDryRight, len);
+        partialManager->produceOutput(i, reverbDryLeft, reverbDryRight, len);
 			} else {
 				partialManager->produceOutput(i, nonReverbLeft, nonReverbRight, len);
 			}
