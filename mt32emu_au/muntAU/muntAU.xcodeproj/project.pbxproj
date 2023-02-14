@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6D03BE88251A92640059D0BC /* libmt32emu.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D03BE87251A92640059D0BC /* libmt32emu.a */; };
 		6D2D74CD18899E60008262F9 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D2D74CC18899E60008262F9 /* Cocoa.framework */; };
 		6D2D74D718899E60008262F9 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6D2D74D518899E60008262F9 /* InfoPlist.strings */; };
 		6D2D74E01889B2F7008262F9 /* MT32EmuAU.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6D2D74DE1889B2F7008262F9 /* MT32EmuAU.cpp */; };
@@ -87,10 +86,10 @@
 		6D2D75F11889B77E008262F9 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D2D75F01889B77D008262F9 /* CoreAudio.framework */; };
 		6D2D75F31889B7AC008262F9 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D2D75F21889B7AC008262F9 /* Accelerate.framework */; };
 		872DB21528FDBAA80040A669 /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 872DB21428FDBAA80040A669 /* CoreMIDI.framework */; };
+		8787BD3C299BAE8E002A3DB6 /* libmt32emu.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8787BD3B299BAE8E002A3DB6 /* libmt32emu.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		6D03BE87251A92640059D0BC /* libmt32emu.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmt32emu.a; path = ../../libmt32emu/libmt32emu.a; sourceTree = "<group>"; };
 		6D2D74C918899E60008262F9 /* muntAU.component */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = muntAU.component; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D2D74CC18899E60008262F9 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		6D2D74CF18899E60008262F9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -271,6 +270,7 @@
 		6D2D75F01889B77D008262F9 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		6D2D75F21889B7AC008262F9 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		872DB21428FDBAA80040A669 /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
+		8787BD3B299BAE8E002A3DB6 /* libmt32emu.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmt32emu.a; path = ../../../mt32emu/lib/libmt32emu.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -285,8 +285,8 @@
 				6D2D74EB1889B395008262F9 /* CoreServices.framework in Frameworks */,
 				6D2D74E91889B38E008262F9 /* AudioToolbox.framework in Frameworks */,
 				6D2D74E71889B387008262F9 /* AudioUnit.framework in Frameworks */,
+				8787BD3C299BAE8E002A3DB6 /* libmt32emu.a in Frameworks */,
 				6D2D74CD18899E60008262F9 /* Cocoa.framework in Frameworks */,
-				6D03BE88251A92640059D0BC /* libmt32emu.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -339,11 +339,11 @@
 		6D2D74D218899E60008262F9 /* muntAU */ = {
 			isa = PBXGroup;
 			children = (
+				8787BD3B299BAE8E002A3DB6 /* libmt32emu.a */,
 				6D2D74EC1889B6B3008262F9 /* CoreAudio */,
 				6D2D74D318899E60008262F9 /* Supporting Files */,
 				6D2D74DE1889B2F7008262F9 /* MT32EmuAU.cpp */,
 				6D2D74DF1889B2F7008262F9 /* MT32EmuAU.h */,
-				6D03BE87251A92640059D0BC /* libmt32emu.a */,
 				6D2D74E11889B330008262F9 /* AU.exp */,
 				6D2D74E31889B348008262F9 /* MT32EmuAU.r */,
 			);
