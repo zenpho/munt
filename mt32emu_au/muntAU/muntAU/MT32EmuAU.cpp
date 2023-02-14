@@ -23,12 +23,13 @@ AUDIOCOMPONENT_ENTRY(AUMusicDeviceFactory, MT32Synth)
 #define TIMBRE5_DICTIONARY_KEY   CFSTR("timbre5.syx")
 
 MT32Synth::MT32Synth(ComponentInstance inComponentInstance)
-: MusicDeviceBase(inComponentInstance, 0, 2)
+: MusicDeviceBase(inComponentInstance, 0, 1)
 {
     CreateElements(); // AUBase::CreateElements()
   
     synth = NULL;
-    lastBufferData = NULL;
+    lastBuffer0Data = NULL;
+    lastBuffer1Data = NULL;
   
     lastBufferPartnum = 0;
 }
@@ -312,7 +313,7 @@ void MT32Synth::CoreMidiTimbreTX(Byte addrH, Byte addrL)
 
 UInt32 MT32Synth::SupportedNumChannels (const AUChannelInfo** outInfo) // audio channels
 {
-    static const AUChannelInfo sChannels[1] = { {0, 2} };
+    static const AUChannelInfo sChannels[1] = { {0, 4} };
     if (outInfo) *outInfo = sChannels;
     return sizeof (sChannels) / sizeof (AUChannelInfo);
 }
@@ -322,46 +323,28 @@ bool MT32Synth::StreamFormatWritable(  AudioUnitScope scope, AudioUnitElement el
     return true;
 }
 
-static OSStatus EncoderDataProcAll(AudioConverterRef inAudioConverter, UInt32 *ioNumberDataPackets, AudioBufferList *ioData, AudioStreamPacketDescription **outDataPacketDescription, void *inUserData)
-{
-    MT32Synth *_this = (MT32Synth*) inUserData;
-
-    if(_this->lastBufferData) {
-        free(_this->lastBufferData);
-    }
-  
-    unsigned int amountToWrite = *ioNumberDataPackets;
-
-    unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2; // stereo
-    MT32Emu::Bit16s *data = (MT32Emu::Bit16s*) malloc(dataSize);
-    _this->synth->render(data, amountToWrite, -1);
-  
-    ioData->mNumberBuffers = 1;
-    ioData->mBuffers[0].mData = data;
-    ioData->mBuffers[0].mDataByteSize = dataSize;
-    _this->lastBufferData = data;
-  
-    return noErr;
-}
-
 static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNumberDataPackets, AudioBufferList *ioData, AudioStreamPacketDescription **outDataPacketDescription, void *inUserData)
 {
     MT32Synth *_this = (MT32Synth*) inUserData;
 
-    if(_this->lastBufferData) {
-        free(_this->lastBufferData);
-    }
-    
+    if(_this->lastBuffer0Data) free(_this->lastBuffer0Data);
+    if(_this->lastBuffer1Data) free(_this->lastBuffer1Data);
+  
     unsigned int amountToWrite = *ioNumberDataPackets;
     unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2; // stereo
   
-    MT32Emu::Bit16s *data = (MT32Emu::Bit16s*) malloc(dataSize);
-    _this->synth->render(data, amountToWrite, _this->lastBufferPartnum);
-  
-    ioData->mNumberBuffers = 1;
-    ioData->mBuffers[0].mData = data;
-    ioData->mBuffers[0].mDataByteSize = dataSize;
-    _this->lastBufferData = data;
+    for(int part=0; part<2; part++)
+    {
+      MT32Emu::Bit16s *data = (MT32Emu::Bit16s*) malloc(dataSize);
+      _this->synth->render(data, amountToWrite, part);
+      
+      ioData->mNumberBuffers = 1;
+      ioData->mBuffers[part].mData = data;
+      ioData->mBuffers[part].mDataByteSize = dataSize;
+
+      if( part == 0 ) _this->lastBuffer0Data = data;
+      if( part == 1 ) _this->lastBuffer1Data = data;
+    }
   
     return noErr;
 }
@@ -372,20 +355,15 @@ OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags, const Audi
         return noErr;
     }
   
-    for(int bus=0; bus<2; bus++)
-    {
-      lastBufferPartnum = bus;
-    
-      AUOutputElement* outputBus = GetOutput(lastBufferPartnum);
-      outputBus->PrepareBuffer(inNumberFrames);
-    
-      AudioBufferList& outputBufList = outputBus->GetBufferList();
-      AUBufferList::ZeroBuffer(outputBufList);
+    AUOutputElement* outputBus = GetOutput(0);
+    outputBus->PrepareBuffer(inNumberFrames);
+  
+    AudioBufferList& outputBufList = outputBus->GetBufferList();
+    AUBufferList::ZeroBuffer(outputBufList);
 
-      UInt32 ioOutputDataPackets = inNumberFrames * destFormat.mFramesPerPacket;
+    UInt32 ioOutputDataPackets = inNumberFrames * destFormat.mFramesPerPacket;
 
-      AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
-    }
+    AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
 
     return noErr;
 }

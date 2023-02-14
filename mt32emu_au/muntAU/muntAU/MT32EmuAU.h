@@ -89,6 +89,7 @@ class MT32Synth : public MusicDeviceBase {
         virtual OSStatus Render(AudioUnitRenderActionFlags &ioActionFlags, const AudioTimeStamp &inTimeStamp, UInt32 inNumberFrames);
   
         MT32Emu::Synth *synth;
-        void *lastBufferData;
+        void *lastBuffer0Data;
+        void *lastBuffer1Data;
         MT32Emu::Bit8s lastBufferPartnum;
 };
