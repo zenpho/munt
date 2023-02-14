@@ -374,7 +374,7 @@ private:
 	void produceLA32Output(Sample *buffer, Bit32u len);
 	void convertSamplesToOutput(Sample *buffer, Bit32u len, bool reverb);
 	bool isAbortingPoly() const;
-	void doRenderStreams(Bit8s ownerPart, Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len);
+	void partRenderStreams(Bit8s ownerPart, Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len);
 
 	void readSysex(unsigned char channel, const Bit8u *sysex, Bit32u len) const;
 	void initMemoryRegions();

@@ -374,7 +374,7 @@ private:
 	void produceLA32Output(Sample *buffer, Bit32u len);
 	void convertSamplesToOutput(Sample *buffer, Bit32u len, bool reverb);
 	bool isAbortingPoly() const;
-	void doRenderStreams(Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len);
+	void partRenderStreams(Bit8s ownerPart, Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len);
 
 	void readSysex(unsigned char channel, const Bit8u *sysex, Bit32u len) const;
 	void initMemoryRegions();
@@ -506,10 +506,12 @@ public:
 	// Renders samples to the specified output stream.
 	// The length is in frames, not bytes (in 16-bit stereo,
 	// one frame is 4 bytes).
-	void render(Sample *stream, Bit32u len);
+  // --ZPO ownerPart may be 0,1,2,3,4,5,6,7,10
+  // --ZPO ownerPart < 0 means "render all parts"
+	void render(Sample *stream, Bit32u len, Bit8s ownerPart);
 
 	// Renders samples to the specified output streams (any or all of which may be NULL).
-	void renderStreams(Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len);
+	void renderStreams(Bit8s ownerPart, Sample *nonReverbLeft, Sample *nonReverbRight, Sample *reverbDryLeft, Sample *reverbDryRight, Sample *reverbWetLeft, Sample *reverbWetRight, Bit32u len);
 
 	// Returns true when there is at least one active partial, otherwise false.
 	bool hasActivePartials() const;

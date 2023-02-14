@@ -1466,7 +1466,7 @@ void Synth::renderStreams(Bit8s ownerPart, Sample *nonReverbLeft, Sample *nonRev
 				}
 			}
 		}
-		doRenderStreams(ownerPart, nonReverbLeft, nonReverbRight, reverbDryLeft, reverbDryRight, reverbWetLeft, reverbWetRight, thisLen);
+		partRenderStreams(ownerPart, nonReverbLeft, nonReverbRight, reverbDryLeft, reverbDryRight, reverbWetLeft, reverbWetRight, thisLen);
 		advanceStreamPosition(nonReverbLeft, thisLen);
 		advanceStreamPosition(nonReverbRight, thisLen);
 		advanceStreamPosition(reverbDryLeft, thisLen);

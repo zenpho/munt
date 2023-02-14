@@ -60,6 +60,7 @@ OSStatus MT32Synth::Initialize()
     sourceDescription.mReserved = 0;
   
     AudioConverterNew(&sourceDescription, &destFormat, &audioConverterRef);
+  
     MT32Emu::FileStream controlROMFile;
     MT32Emu::FileStream pcmROMFile;
   
@@ -309,7 +310,7 @@ void MT32Synth::CoreMidiTimbreTX(Byte addrH, Byte addrL)
 
 UInt32 MT32Synth::SupportedNumChannels (const AUChannelInfo** outInfo) // audio channels
 {
-    static const AUChannelInfo sChannels[2] = { {0, 1}, {0, 2} };
+    static const AUChannelInfo sChannels[1] = { {0, 4} };
     if (outInfo) *outInfo = sChannels;
     return sizeof (sChannels) / sizeof (AUChannelInfo);
 }
@@ -329,21 +330,24 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
   
     unsigned int amountToWrite = *ioNumberDataPackets;
 
-    unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2;
+    unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2; // stereo
     MT32Emu::Bit16s *data = (MT32Emu::Bit16s*) malloc(dataSize);
-    _this->synth->render(data, amountToWrite);
   
-    ioData->mNumberBuffers = 1;
-    ioData->mBuffers[0].mData = data;
-    ioData->mBuffers[0].mDataByteSize = dataSize;
-    _this->lastBufferData = data;
+    ioData->mNumberBuffers = 2;
+  
+    for( int bus=0; bus<ioData->mNumberBuffers; bus++)
+    {
+      _this->synth->render(data, amountToWrite, bus);
+      ioData->mBuffers[bus].mData = data;
+      ioData->mBuffers[bus].mDataByteSize = dataSize;
+      _this->lastBufferData = data;
+    }
   
     return noErr;
 }
 
 OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags, const AudioTimeStamp &inTimeStamp, UInt32 inNumberFrames)
 {
-
     if(!synth) {
         return noErr;
     }
@@ -353,6 +357,21 @@ OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags, const Audi
   
     AudioBufferList& outputBufList = outputBus->GetBufferList();
     AUBufferList::ZeroBuffer(outputBufList);
+  
+  
+  
+    for (unsigned int i = 0; i < outputBufList.mNumberBuffers; ++i)
+    {
+        AudioBuffer& buf = outputBufList.mBuffers[i];
+
+        if (buf.mNumberChannels == 1)
+        {
+            (float*) buf.mData;
+        }
+        else
+        {
+        }
+    }
 
     UInt32 ioOutputDataPackets = inNumberFrames * destFormat.mFramesPerPacket;
     AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);

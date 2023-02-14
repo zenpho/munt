@@ -2,10 +2,12 @@
 //  MT32EmuAU.h
 //  muntAU
 //
-//  Updated 2023 jan 05 by Zenpho
+//  Updated 2023 by Zenpho
 //  added CoreMidi virtual ports for timbre dump data
 //  to work around Ableton Live limitations when hosting
 //  multitimbral plugins and using MIDI Sysex messages
+//
+//  added multiple audio outputs for individual parts
 //
 //  Orginal code by Ivan Safrin on 1/17/14.
 //  Copyright (c) 2014 Ivan Safrin. All rights reserved.
