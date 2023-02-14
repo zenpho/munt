@@ -90,4 +90,5 @@ class MT32Synth : public MusicDeviceBase {
   
         MT32Emu::Synth *synth;
         void *lastBufferData;
+        MT32Emu::Bit8s lastBufferPartnum;
 };
