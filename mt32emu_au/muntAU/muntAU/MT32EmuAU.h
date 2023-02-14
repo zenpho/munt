@@ -14,7 +14,7 @@
 //
 
 #include "MusicDeviceBase.h"
-#include "mt32emu/mt32emu.h"
+#include "mt32emu.h"
 
 #pragma once
 

@@ -844,10 +844,10 @@
 				EXPORTED_SYMBOLS_FILE = "$(SRCROOT)/$(PROJECT_NAME)/AU.exp";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "muntAU/muntAU-Prefix.pch";
-				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../munt/build/mt32emu/include\"";
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../mt32emu/src\"";
 				INFOPLIST_FILE = "muntAU/muntAU-Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
-				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../libmt32emu\"";
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../../mt32emu/lib/\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-bundle";
@@ -879,10 +879,10 @@
 				EXPORTED_SYMBOLS_FILE = "$(SRCROOT)/$(PROJECT_NAME)/AU.exp";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "muntAU/muntAU-Prefix.pch";
-				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../munt/build/mt32emu/include\"";
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../mt32emu/src\"";
 				INFOPLIST_FILE = "muntAU/muntAU-Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
-				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../libmt32emu\"";
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../../mt32emu/lib/\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-bundle";

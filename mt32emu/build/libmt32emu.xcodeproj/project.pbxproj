@@ -173,7 +173,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = /Applications/Xcode101.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk;
-				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build/build";
+				SYMROOT = ./lib;
 			};
 			name = RelWithDebInfo;
 		};
@@ -187,7 +187,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = /Applications/Xcode101.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk;
-				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build/build";
+				SYMROOT = ./lib;
 			};
 			name = MinSizeRel;
 		};
@@ -218,7 +218,7 @@
 				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = mt32emu;
 				SECTORDER_FLAGS = "";
-				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build";
+				SYMROOT = ./lib;
 				USE_HEADERMAP = NO;
 				WARNING_CFLAGS = (
 					"-Wmost",
@@ -236,10 +236,11 @@
 					i386,
 					x86_64,
 				);
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/";
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = /Applications/Xcode101.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk;
-				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build/build";
+				SYMROOT = ./lib;
 			};
 			name = Debug;
 		};
@@ -250,10 +251,11 @@
 					i386,
 					x86_64,
 				);
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/";
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = /Applications/Xcode101.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk;
-				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build/build";
+				SYMROOT = ./lib;
 			};
 			name = Release;
 		};
@@ -284,7 +286,7 @@
 				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = mt32emu;
 				SECTORDER_FLAGS = "";
-				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build";
+				SYMROOT = ./lib;
 				USE_HEADERMAP = NO;
 				WARNING_CFLAGS = (
 					"-Wmost",
@@ -322,7 +324,7 @@
 				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = mt32emu;
 				SECTORDER_FLAGS = "";
-				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build";
+				SYMROOT = ./lib;
 				USE_HEADERMAP = NO;
 				WARNING_CFLAGS = (
 					"-Wmost",
@@ -359,7 +361,7 @@
 				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = mt32emu;
 				SECTORDER_FLAGS = "";
-				SYMROOT = "/Users/p3-phelps/Downloads/munt-master/mt32emu/build";
+				SYMROOT = ./lib;
 				USE_HEADERMAP = NO;
 				WARNING_CFLAGS = (
 					"-Wmost",
