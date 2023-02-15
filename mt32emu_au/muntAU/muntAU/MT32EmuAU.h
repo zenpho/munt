@@ -20,7 +20,9 @@
 
 class MT32Synth : public MusicDeviceBase {
     private:
-        AudioConverterRef audioConverterRef;
+        AudioConverterRef audioConverterRef0;
+        AudioConverterRef audioConverterRef1;
+        
         CAStreamBasicDescription destFormat;
   
         const MT32Emu::ROMImage *romImage;
@@ -89,7 +91,7 @@ class MT32Synth : public MusicDeviceBase {
         virtual OSStatus Render(AudioUnitRenderActionFlags &ioActionFlags, const AudioTimeStamp &inTimeStamp, UInt32 inNumberFrames);
   
         MT32Emu::Synth *synth;
-        void *lastBuffer0Data;
-        void *lastBuffer1Data;
-        MT32Emu::Bit8s lastBufferPartnum;
+  
+        MT32Emu::Bit8s curPartnum;
+        MT32Emu::Bit16s* curAudioData[9];
 };

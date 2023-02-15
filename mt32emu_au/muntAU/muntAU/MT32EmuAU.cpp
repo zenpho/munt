@@ -23,15 +23,13 @@ AUDIOCOMPONENT_ENTRY(AUMusicDeviceFactory, MT32Synth)
 #define TIMBRE5_DICTIONARY_KEY   CFSTR("timbre5.syx")
 
 MT32Synth::MT32Synth(ComponentInstance inComponentInstance)
-: MusicDeviceBase(inComponentInstance, 0, 1)
+: MusicDeviceBase(inComponentInstance, 0, 2)
 {
     CreateElements(); // AUBase::CreateElements()
   
     synth = NULL;
-    lastBuffer0Data = NULL;
-    lastBuffer1Data = NULL;
-  
-    lastBufferPartnum = 0;
+    curPartnum = 0;
+    for(int i=0; i<9; i++) curAudioData[i] = nullptr;
 }
 
 MT32Synth::~MT32Synth()
@@ -62,7 +60,12 @@ OSStatus MT32Synth::Initialize()
     sourceDescription.mFramesPerPacket = 1;
     sourceDescription.mReserved = 0;
   
-    AudioConverterNew(&sourceDescription, &destFormat, &audioConverterRef);
+    UInt32 ioOutputDataPackets = 1024 * destFormat.mFramesPerPacket;
+    unsigned int dataSize = ioOutputDataPackets * sizeof(MT32Emu::Bit16s) * 2; // stereo
+    for(int i=0; i<9; i++) curAudioData[i] = (MT32Emu::Bit16s*) malloc(dataSize);
+  
+    AudioConverterNew(&sourceDescription, &destFormat, &audioConverterRef0);
+    AudioConverterNew(&sourceDescription, &destFormat, &audioConverterRef1);
   
     MT32Emu::FileStream controlROMFile;
     MT32Emu::FileStream pcmROMFile;
@@ -313,7 +316,7 @@ void MT32Synth::CoreMidiTimbreTX(Byte addrH, Byte addrL)
 
 UInt32 MT32Synth::SupportedNumChannels (const AUChannelInfo** outInfo) // audio channels
 {
-    static const AUChannelInfo sChannels[1] = { {0, 4} };
+    static const AUChannelInfo sChannels[1] = { {0, 2} };
     if (outInfo) *outInfo = sChannels;
     return sizeof (sChannels) / sizeof (AUChannelInfo);
 }
@@ -326,25 +329,16 @@ bool MT32Synth::StreamFormatWritable(  AudioUnitScope scope, AudioUnitElement el
 static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNumberDataPackets, AudioBufferList *ioData, AudioStreamPacketDescription **outDataPacketDescription, void *inUserData)
 {
     MT32Synth *_this = (MT32Synth*) inUserData;
-
-    if(_this->lastBuffer0Data) free(_this->lastBuffer0Data);
-    if(_this->lastBuffer1Data) free(_this->lastBuffer1Data);
+  
+    int part = _this->curPartnum;
   
     unsigned int amountToWrite = *ioNumberDataPackets;
     unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2; // stereo
   
-    for(int part=0; part<2; part++)
-    {
-      MT32Emu::Bit16s *data = (MT32Emu::Bit16s*) malloc(dataSize);
-      _this->synth->render(data, amountToWrite, part);
-      
-      ioData->mNumberBuffers = 1;
-      ioData->mBuffers[part].mData = data;
-      ioData->mBuffers[part].mDataByteSize = dataSize;
-
-      if( part == 0 ) _this->lastBuffer0Data = data;
-      if( part == 1 ) _this->lastBuffer1Data = data;
-    }
+    _this->synth->render(_this->curAudioData[part], amountToWrite, part);
+    ioData->mBuffers[0].mData = _this->curAudioData[0];
+    ioData->mBuffers[0].mDataByteSize = dataSize;
+    ioData->mNumberBuffers = 1;
   
     return noErr;
 }
@@ -357,13 +351,18 @@ OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags, const Audi
   
     AUOutputElement* outputBus = GetOutput(0);
     outputBus->PrepareBuffer(inNumberFrames);
-  
     AudioBufferList& outputBufList = outputBus->GetBufferList();
     AUBufferList::ZeroBuffer(outputBufList);
-
     UInt32 ioOutputDataPackets = inNumberFrames * destFormat.mFramesPerPacket;
-
-    AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
+    curPartnum = 0;
+    AudioConverterFillComplexBuffer(audioConverterRef0, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
+  
+    outputBus = GetOutput(1);
+    outputBus->PrepareBuffer(inNumberFrames);
+    outputBufList = outputBus->GetBufferList();
+    AUBufferList::ZeroBuffer(outputBufList);
+    curPartnum = 1;
+    AudioConverterFillComplexBuffer(audioConverterRef1, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
 
     return noErr;
 }
@@ -373,6 +372,11 @@ void MT32Synth::Cleanup()
     synth->close();
     delete synth;
     MusicDeviceBase::Cleanup();
+  
+    for(int i=0; i<9; i++)
+    {
+      free( curAudioData[i] );
+    }
 }
 
 OSStatus MT32Synth::SetParameter(AudioUnitParameterID inID, AudioUnitScope   inScope, AudioUnitElement inElement, AudioUnitParameterValue  inValue, UInt32  inBufferOffsetInFrames)
