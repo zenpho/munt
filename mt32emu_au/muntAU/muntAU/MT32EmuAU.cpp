@@ -23,7 +23,7 @@ AUDIOCOMPONENT_ENTRY(AUMusicDeviceFactory, MT32Synth)
 #define TIMBRE5_DICTIONARY_KEY   CFSTR("timbre5.syx")
 
 MT32Synth::MT32Synth(ComponentInstance inComponentInstance)
-: MusicDeviceBase(inComponentInstance, 0, 2)
+: MusicDeviceBase(inComponentInstance, 0, 8)
 {
     CreateElements(); // AUBase::CreateElements()
   
@@ -60,12 +60,14 @@ OSStatus MT32Synth::Initialize()
     sourceDescription.mFramesPerPacket = 1;
     sourceDescription.mReserved = 0;
   
-    UInt32 ioOutputDataPackets = 1024 * destFormat.mFramesPerPacket;
-    unsigned int dataSize = ioOutputDataPackets * sizeof(MT32Emu::Bit16s) * 2; // stereo
-    for(int i=0; i<9; i++) curAudioData[i] = (MT32Emu::Bit16s*) malloc(dataSize);
-  
-    AudioConverterNew(&sourceDescription, &destFormat, &audioConverterRef0);
-    AudioConverterNew(&sourceDescription, &destFormat, &audioConverterRef1);
+    unsigned int dataSize = 1024 * destFormat.mFramesPerPacket * sizeof(MT32Emu::Bit16s) * 2; // stereo
+    for(int i=0; i<9; i++)
+    {
+      curAudioData[i] = (MT32Emu::Bit16s*) malloc(dataSize);
+      memset(curAudioData[i], 0, dataSize);
+      
+      AudioConverterNew(&sourceDescription, &destFormat, &audioConverters[i]);
+    }
   
     MT32Emu::FileStream controlROMFile;
     MT32Emu::FileStream pcmROMFile;
@@ -329,40 +331,40 @@ bool MT32Synth::StreamFormatWritable(  AudioUnitScope scope, AudioUnitElement el
 static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNumberDataPackets, AudioBufferList *ioData, AudioStreamPacketDescription **outDataPacketDescription, void *inUserData)
 {
     MT32Synth *_this = (MT32Synth*) inUserData;
-  
     int part = _this->curPartnum;
+    MT32Emu::Bit16s* data = _this->curAudioData[part];
   
     unsigned int amountToWrite = *ioNumberDataPackets;
     unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2; // stereo
-  
-    _this->synth->render(_this->curAudioData[part], amountToWrite, part);
-    ioData->mBuffers[0].mData = _this->curAudioData[0];
+    _this->synth->render(data, amountToWrite, part);
+    ioData->mBuffers[0].mData = data;
     ioData->mBuffers[0].mDataByteSize = dataSize;
     ioData->mNumberBuffers = 1;
   
     return noErr;
 }
 
-OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags, const AudioTimeStamp &inTimeStamp, UInt32 inNumberFrames)
+//OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags,
+//  const AudioTimeStamp &inTimeStamp, UInt32 inNumberFrames)
+
+OSStatus MT32Synth::RenderBus(AudioUnitRenderActionFlags &ioActionFlags,
+  const AudioTimeStamp &inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames)
 {
-    if(!synth) {
-        return noErr;
-    }
+    if( !synth ) return noErr;
   
-    AUOutputElement* outputBus = GetOutput(0);
-    outputBus->PrepareBuffer(inNumberFrames);
-    AudioBufferList& outputBufList = outputBus->GetBufferList();
-    AUBufferList::ZeroBuffer(outputBufList);
     UInt32 ioOutputDataPackets = inNumberFrames * destFormat.mFramesPerPacket;
-    curPartnum = 0;
-    AudioConverterFillComplexBuffer(audioConverterRef0, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
   
-    outputBus = GetOutput(1);
-    outputBus->PrepareBuffer(inNumberFrames);
-    outputBufList = outputBus->GetBufferList();
+    curPartnum = inBusNumber;
+    AUOutputElement* outputBus = GetOutput(curPartnum);
+    AudioBufferList& outputBufList = outputBus->GetBufferList();
+    AudioConverterRef audioConverterRef = audioConverters[curPartnum];
     AUBufferList::ZeroBuffer(outputBufList);
-    curPartnum = 1;
-    AudioConverterFillComplexBuffer(audioConverterRef1, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
+  
+    // interesting - disabling this check causes all other busses to render - but with glitches
+    //             - enabling this check cleans glitches but only the first bus will render
+    //if( !NeedsToRender(inTimeStamp) ) return noErr;
+  
+    AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
 
     return noErr;
 }
