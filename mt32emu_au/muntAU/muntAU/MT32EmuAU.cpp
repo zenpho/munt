@@ -332,10 +332,14 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
 {
     MT32Synth *_this = (MT32Synth*) inUserData;
     int part = _this->curPartnum;
+  
+    if( _this->curPartnum == -1 ) part = 8;
     MT32Emu::Bit16s* data = _this->curAudioData[part];
   
     unsigned int amountToWrite = *ioNumberDataPackets;
     unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2; // stereo
+  
+    if( _this->curPartnum == -1 ) part = -1;
     _this->synth->render(data, amountToWrite, part);
     ioData->mBuffers[0].mData = data;
     ioData->mBuffers[0].mDataByteSize = dataSize;
@@ -344,9 +348,6 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
     return noErr;
 }
 
-//OSStatus MT32Synth::Render(AudioUnitRenderActionFlags &ioActionFlags,
-//  const AudioTimeStamp &inTimeStamp, UInt32 inNumberFrames)
-
 OSStatus MT32Synth::RenderBus(AudioUnitRenderActionFlags &ioActionFlags,
   const AudioTimeStamp &inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames)
 {
@@ -354,17 +355,22 @@ OSStatus MT32Synth::RenderBus(AudioUnitRenderActionFlags &ioActionFlags,
   
     UInt32 ioOutputDataPackets = inNumberFrames * destFormat.mFramesPerPacket;
   
-    curPartnum = inBusNumber;
-    AUOutputElement* outputBus = GetOutput(curPartnum);
-    AudioBufferList& outputBufList = outputBus->GetBufferList();
-    AudioConverterRef audioConverterRef = audioConverters[curPartnum];
-    AUBufferList::ZeroBuffer(outputBufList);
+    if ( inBusNumber == 0 )
+    {
+      AUOutputElement* outputBus = GetOutput(0);
+      AudioBufferList& outputBufList = outputBus->GetBufferList();
+      AudioConverterRef audioConverterRef = audioConverters[8];
+      AUBufferList::ZeroBuffer(outputBufList);
   
-    // interesting - disabling this check causes all other busses to render - but with glitches
-    //             - enabling this check cleans glitches but only the first bus will render
-    //if( !NeedsToRender(inTimeStamp) ) return noErr;
-  
-    AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
+      curPartnum = -1;
+      AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
+    }
+    else
+    {
+      AUOutputElement* outputBus = GetOutput(inBusNumber);
+      AudioBufferList& outputBufList = outputBus->GetBufferList();
+      AUBufferList::ZeroBuffer(outputBufList);
+    }
 
     return noErr;
 }
