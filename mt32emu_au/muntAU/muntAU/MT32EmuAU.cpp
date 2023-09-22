@@ -2,7 +2,7 @@
 //  MT32EmuAU.cpp
 //  muntAU
 //
-//  Updated 2023 jan 05 by Zenpho
+//  Updated 2023 sep 22 by Zenpho
 //  added CoreMidi virtual ports for timbre dump data
 //  to work around Ableton Live limitations when hosting
 //  multitimbral plugins and using MIDI Sysex messages
@@ -27,9 +27,11 @@ MT32Synth::MT32Synth(ComponentInstance inComponentInstance)
 {
     CreateElements(); // AUBase::CreateElements()
   
-    synth = NULL;
-    curPartnum = 0;
-    for(int i=0; i<9; i++) curAudioData[i] = nullptr;
+    for(int i=0; i<8; i++)
+    {
+      synths[i] = NULL;
+      curAudioData[i] = nullptr;
+    }
 }
 
 MT32Synth::~MT32Synth()
@@ -84,19 +86,22 @@ OSStatus MT32Synth::Initialize()
     romImage = MT32Emu::ROMImage::makeROMImage(&controlROMFile);
     pcmRomImage = MT32Emu::ROMImage::makeROMImage(&pcmROMFile);
   
-    synth = new MT32Emu::Synth();
-    synth->open(*romImage, *pcmRomImage);
+    for(int i=0; i<8; i++)
+    {
+      synths[i] = new MT32Emu::Synth();
+      synths[i]->open(*romImage, *pcmRomImage);
+      
+      synths[i]->setOutputGain(2.0);
+      synths[i]->setReverbOutputGain(0.0);
+      synths[i]->setReverbEnabled(false);
+      
+      fprintf(stdout, "MUNT:MT32 (multi %d) configured for %d partials\n", i, synths[i]->getPartialCount());
+    }
   
     MT32Emu::ROMImage::freeROMImage(romImage);
     MT32Emu::ROMImage::freeROMImage(pcmRomImage);
   
     MusicDeviceBase::Initialize();
-  
-    synth->setOutputGain(2.0);
-    synth->setReverbOutputGain(0.0);
-    synth->setReverbEnabled(false);
-  
-    fprintf(stdout, "MUNT:MT32 (multi) configured for %d partials\n", synth->getPartialCount());
   
     CoreMidiPortSetup();
   
@@ -175,9 +180,13 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
               if( packet->length >= 2 ) msg |= ( packet->data[1] << 8 );
               if( packet->length >= 3 ) msg |= ( packet->data[2] << 16 );
               if( packet->length == 4 ) msg |= ( packet->data[3] << 24 );
-
+            
               //fprintf(stdout, "msg: 0x%x \n", msg);
-              static_cast<MT32Synth*>(readProcRefCon)->synth->playMsg( msg );
+            
+              unsigned int rxChan   = packet->data[0] & 0x0f;
+              unsigned int synthIdx = 0;
+              if( rxChan >= 1 ) synthIdx = rxChan - 1;
+              static_cast<MT32Synth*>(readProcRefCon)->synths[synthIdx]->playMsg( msg );
               packet = MIDIPacketNext(packet);
               continue;
           }
@@ -232,7 +241,7 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
           fprintf(stdout, "\n");
           */
         
-          static_cast<MT32Synth*>(readProcRefCon)->synth->playSysex( cmSysexData, cmSysexLen );
+          static_cast<MT32Synth*>(readProcRefCon)->synths[0]->playSysex( cmSysexData, cmSysexLen );
           cmSysexState = WAIT_FOR_0XF0;
         
           // F0 41 10 16 11 "lookup memory"
@@ -279,10 +288,10 @@ uint16_t MT32Synth::getSysexTimbre(Byte addrH, Byte addrL, Byte* buffer)
   
   uint32_t addr = MT32EMU_MEMADDR( (0x04 << 16) | (addrH << 8) | addrL );
   uint16_t timbreSize = sizeof(MT32Emu::TimbreParam);
-  synth->readMemory(addr, timbreSize, buffer + 8);
+  synths[0]->readMemory(addr, timbreSize, buffer + 8);
   
   // append checksum and sysex end marker 0xF7
-  uint8_t checksum = synth->calcSysexChecksum(buffer + 5, timbreSize + 8, 0);
+  uint8_t checksum = synths[0]->calcSysexChecksum(buffer + 5, timbreSize + 8, 0);
   buffer[timbreSize + 8] = checksum;
   buffer[timbreSize + 9] = 0xF7;
   uint16_t bufferLen = timbreSize + 10;
@@ -332,16 +341,14 @@ bool MT32Synth::StreamFormatWritable(  AudioUnitScope scope, AudioUnitElement el
 static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNumberDataPackets, AudioBufferList *ioData, AudioStreamPacketDescription **outDataPacketDescription, void *inUserData)
 {
     MT32Synth *_this = (MT32Synth*) inUserData;
-    int part = _this->curPartnum;
   
-    if( _this->curPartnum == -1 ) part = 8; // curAudioData slot 8 for curPart '-1'
-    MT32Emu::Bit16s* data = _this->curAudioData[part];
+    unsigned int curBus = _this->curInBusNumber;
+    MT32Emu::Bit16s* data = _this->curAudioData[curBus];
   
     unsigned int amountToWrite = *ioNumberDataPackets;
     unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2; // stereo
-  
-    if( _this->curPartnum == -1 ) part = -1;
-    _this->synth->render(data, amountToWrite, part);
+
+    _this->synths[curBus]->render(data, amountToWrite, -1);
     ioData->mBuffers[0].mData = data;
     ioData->mBuffers[0].mDataByteSize = dataSize;
     ioData->mNumberBuffers = 1;
@@ -352,40 +359,30 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
 OSStatus MT32Synth::RenderBus(AudioUnitRenderActionFlags &ioActionFlags,
   const AudioTimeStamp &inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames)
 {
+    MT32Emu::Synth *synth = synths[inBusNumber];
     if( !synth ) return noErr;
   
     UInt32 ioOutputDataPackets = inNumberFrames * destFormat.mFramesPerPacket;
   
-    if ( inBusNumber == 0 )
-    {
-      AUOutputElement* outputBus = GetOutput(0);
-      AudioBufferList& outputBufList = outputBus->GetBufferList();
-      AUBufferList::ZeroBuffer(outputBufList);
-      //AudioConverterRef audioConverterRef = audioConverters[8];
-  
-      //curPartnum = -1;
-      //AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
-    }
-    else
-    {
-      AUOutputElement* outputBus = GetOutput(inBusNumber);
-      AudioBufferList& outputBufList = outputBus->GetBufferList();
-      AUBufferList::ZeroBuffer(outputBufList);
-      
-      curPartnum = inBusNumber;
-      if( curPartnum > 7 ) curPartnum = 7;
-      if( curPartnum < 0 ) curPartnum = 0;
-      AudioConverterRef audioConverterRef = audioConverters[ curPartnum ];
-      AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
-    }
+    AUOutputElement* outputBus = GetOutput(inBusNumber);
+    AudioBufferList& outputBufList = outputBus->GetBufferList();
+    AUBufferList::ZeroBuffer(outputBufList);
+    AudioConverterRef audioConverterRef = audioConverters[inBusNumber];
+
+    curInBusNumber = inBusNumber;
+    AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
 
     return noErr;
 }
 
 void MT32Synth::Cleanup()
 {
-    synth->close();
-    delete synth;
+    for(int i=0; i<8; i++)
+    {
+      synths[i]->close();
+      delete synths[i];
+    }
+  
     MusicDeviceBase::Cleanup();
   
     for(int i=0; i<9; i++)
@@ -461,7 +458,7 @@ void MT32Synth::RestoreStateAsSysex( CFDataRef data )
     //fprintf(stdout, "restoring %d bytes\n", numBytes);
 
     // send to libmt32emu
-    synth->playSysex( CFDataGetBytePtr (data), numBytes );
+    synths[0]->playSysex( CFDataGetBytePtr (data), numBytes );
 }
 
 OSStatus MT32Synth::RestoreState(CFPropertyListRef inData)
