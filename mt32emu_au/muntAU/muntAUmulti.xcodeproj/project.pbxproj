@@ -90,7 +90,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		6D2D74C918899E60008262F9 /* muntAU.component */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = muntAU.component; sourceTree = BUILT_PRODUCTS_DIR; };
+		6D2D74C918899E60008262F9 /* muntAUmulti.component */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = muntAUmulti.component; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D2D74CC18899E60008262F9 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		6D2D74CF18899E60008262F9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		6D2D74D018899E60008262F9 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
@@ -305,7 +305,7 @@
 		6D2D74CA18899E60008262F9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				6D2D74C918899E60008262F9 /* muntAU.component */,
+				6D2D74C918899E60008262F9 /* muntAUmulti.component */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -589,9 +589,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		6D2D74C818899E60008262F9 /* muntAU */ = {
+		6D2D74C818899E60008262F9 /* muntAUmulti */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 6D2D74DB18899E60008262F9 /* Build configuration list for PBXNativeTarget "muntAU" */;
+			buildConfigurationList = 6D2D74DB18899E60008262F9 /* Build configuration list for PBXNativeTarget "muntAUmulti" */;
 			buildPhases = (
 				6D2D74C518899E60008262F9 /* Sources */,
 				6D2D74C618899E60008262F9 /* Frameworks */,
@@ -602,9 +602,9 @@
 			);
 			dependencies = (
 			);
-			name = muntAU;
+			name = muntAUmulti;
 			productName = muntAU;
-			productReference = 6D2D74C918899E60008262F9 /* muntAU.component */;
+			productReference = 6D2D74C918899E60008262F9 /* muntAUmulti.component */;
 			productType = "com.apple.product-type.bundle";
 		};
 /* End PBXNativeTarget section */
@@ -621,7 +621,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 6D2D74C418899E60008262F9 /* Build configuration list for PBXProject "muntAU" */;
+			buildConfigurationList = 6D2D74C418899E60008262F9 /* Build configuration list for PBXProject "muntAUmulti" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -634,7 +634,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				6D2D74C818899E60008262F9 /* muntAU */,
+				6D2D74C818899E60008262F9 /* muntAUmulti */,
 			);
 		};
 /* End PBXProject section */
@@ -852,6 +852,7 @@
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-bundle";
 				OTHER_REZFLAGS = "-d i386_$i386 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I /DeveloperExtras/CoreAudio/AudioUnits/AUPublic/AUBase";
+				PRODUCT_BUNDLE_IDENTIFIER = org.munt.muntAUmulti;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				REZ_SEARCH_PATHS = (
@@ -887,6 +888,7 @@
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-bundle";
 				OTHER_REZFLAGS = "-d i386_$i386 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I /DeveloperExtras/CoreAudio/AudioUnits/AUPublic/AUBase";
+				PRODUCT_BUNDLE_IDENTIFIER = org.munt.muntAUmulti;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				REZ_SEARCH_PATHS = (
@@ -903,7 +905,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		6D2D74C418899E60008262F9 /* Build configuration list for PBXProject "muntAU" */ = {
+		6D2D74C418899E60008262F9 /* Build configuration list for PBXProject "muntAUmulti" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				6D2D74D918899E60008262F9 /* Debug */,
@@ -912,7 +914,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		6D2D74DB18899E60008262F9 /* Build configuration list for PBXNativeTarget "muntAU" */ = {
+		6D2D74DB18899E60008262F9 /* Build configuration list for PBXNativeTarget "muntAUmulti" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				6D2D74DC18899E60008262F9 /* Debug */,

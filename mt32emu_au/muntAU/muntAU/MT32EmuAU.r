@@ -2,11 +2,11 @@
 
 #define RES_ID    1000
 #define COMP_TYPE 'aumu'
-#define COMP_SUBTYPE 'MT32'
+#define COMP_SUBTYPE 'MLTI'
 #define COMP_MANUF 'MUNT'
-#define VERSION 0xFFFFFFFF
-#define NAME "MUNT: MT-32 Emulator"
-#define DESCRIPTION "Roland MT-32 emulator"
+#define VERSION 0x00010000
+#define NAME "MUNT: MT-32 Emulator multi"
+#define DESCRIPTION "Roland MT-32 emulator multi"
 #define ENTRY_POINT "MT32SynthEntry"
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

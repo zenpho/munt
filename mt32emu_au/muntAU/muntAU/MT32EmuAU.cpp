@@ -60,7 +60,8 @@ OSStatus MT32Synth::Initialize()
     sourceDescription.mFramesPerPacket = 1;
     sourceDescription.mReserved = 0;
   
-    unsigned int dataSize = 1024 * destFormat.mFramesPerPacket * sizeof(MT32Emu::Bit16s) * 2; // stereo
+    //unsigned int dataSize = 1024 * destFormat.mFramesPerPacket * sizeof(MT32Emu::Bit16s) * 2; // stereo
+    unsigned int dataSize = 512 * sizeof(MT32Emu::Bit16s) * 2; // stereo
     for(int i=0; i<9; i++)
     {
       curAudioData[i] = (MT32Emu::Bit16s*) malloc(dataSize);
@@ -95,7 +96,7 @@ OSStatus MT32Synth::Initialize()
     synth->setReverbOutputGain(0.0);
     synth->setReverbEnabled(false);
   
-    fprintf(stdout, "MUNT:MT32 configured for %d partials\n", synth->getPartialCount());
+    fprintf(stdout, "MUNT:MT32 (multi) configured for %d partials\n", synth->getPartialCount());
   
     CoreMidiPortSetup();
   
@@ -140,7 +141,7 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
     enum e_CMSysexState {
         WAIT_FOR_0XF0 = 0,
         WAIT_FOR_0XF7,
-        SEND_TO_MT32,
+        SYSX_TO_MT32,
     };
     static e_CMSysexState cmSysexState = WAIT_FOR_0XF0;
     static Byte           cmSysexData[2048];
@@ -191,7 +192,7 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
               cmSysexLen = packet->length;
             
               if ( cmSysexData[cmSysexLen-1] == 0xF7 )
-                cmSysexState = SEND_TO_MT32;
+                cmSysexState = SYSX_TO_MT32;
               else
               {
                 cmSysexState = WAIT_FOR_0XF7;
@@ -212,7 +213,7 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
               cmSysexLen += packet->length;
             
               if ( cmSysexData[cmSysexLen-1] == 0xF7 )
-                cmSysexState = SEND_TO_MT32;
+                cmSysexState = SYSX_TO_MT32;
               else
               {
                 cmSysexState = WAIT_FOR_0XF7;
@@ -221,7 +222,7 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
               }
           }
       }
-      if( cmSysexState == SEND_TO_MT32 )
+      if( cmSysexState == SYSX_TO_MT32 )
       {
           /* debugging
           fprintf(stdout, "COMPLETE SYSTEM EXCLUSIVE: ");
@@ -333,7 +334,7 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
     MT32Synth *_this = (MT32Synth*) inUserData;
     int part = _this->curPartnum;
   
-    if( _this->curPartnum == -1 ) part = 8;
+    if( _this->curPartnum == -1 ) part = 8; // curAudioData slot 8 for curPart '-1'
     MT32Emu::Bit16s* data = _this->curAudioData[part];
   
     unsigned int amountToWrite = *ioNumberDataPackets;
@@ -359,17 +360,23 @@ OSStatus MT32Synth::RenderBus(AudioUnitRenderActionFlags &ioActionFlags,
     {
       AUOutputElement* outputBus = GetOutput(0);
       AudioBufferList& outputBufList = outputBus->GetBufferList();
-      AudioConverterRef audioConverterRef = audioConverters[8];
       AUBufferList::ZeroBuffer(outputBufList);
+      //AudioConverterRef audioConverterRef = audioConverters[8];
   
-      curPartnum = -1;
-      AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
+      //curPartnum = -1;
+      //AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
     }
     else
     {
       AUOutputElement* outputBus = GetOutput(inBusNumber);
       AudioBufferList& outputBufList = outputBus->GetBufferList();
       AUBufferList::ZeroBuffer(outputBufList);
+      
+      curPartnum = inBusNumber;
+      if( curPartnum > 7 ) curPartnum = 7;
+      if( curPartnum < 0 ) curPartnum = 0;
+      AudioConverterRef audioConverterRef = audioConverters[ curPartnum ];
+      AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
     }
 
     return noErr;
