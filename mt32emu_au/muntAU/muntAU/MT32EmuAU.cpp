@@ -16,18 +16,12 @@
 
 AUDIOCOMPONENT_ENTRY(AUMusicDeviceFactory, MT32Synth)
 
-#define TIMBRE1_DICTIONARY_KEY   CFSTR("timbre1.syx")
-#define TIMBRE2_DICTIONARY_KEY   CFSTR("timbre2.syx")
-#define TIMBRE3_DICTIONARY_KEY   CFSTR("timbre3.syx")
-#define TIMBRE4_DICTIONARY_KEY   CFSTR("timbre4.syx")
-#define TIMBRE5_DICTIONARY_KEY   CFSTR("timbre5.syx")
-
 MT32Synth::MT32Synth(ComponentInstance inComponentInstance)
-: MusicDeviceBase(inComponentInstance, 0, 8)
+: MusicDeviceBase(inComponentInstance, 0, NUM_PARALLEL_SYNTHS)
 {
     CreateElements(); // AUBase::CreateElements()
   
-    for(int i=0; i<8; i++)
+    for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
     {
       synths[i] = NULL;
       curAudioData[i] = nullptr;
@@ -64,7 +58,7 @@ OSStatus MT32Synth::Initialize()
   
     //unsigned int dataSize = 1024 * destFormat.mFramesPerPacket * sizeof(MT32Emu::Bit16s) * 2; // stereo
     unsigned int dataSize = 512 * sizeof(MT32Emu::Bit16s) * 2; // stereo
-    for(int i=0; i<8; i++)
+    for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
     {
       curAudioData[i] = (MT32Emu::Bit16s*) malloc(dataSize);
       memset(curAudioData[i], 0, dataSize);
@@ -86,7 +80,7 @@ OSStatus MT32Synth::Initialize()
     romImage = MT32Emu::ROMImage::makeROMImage(&controlROMFile);
     pcmRomImage = MT32Emu::ROMImage::makeROMImage(&pcmROMFile);
   
-    for(int i=0; i<8; i++)
+    for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
     {
       synths[i] = new MT32Emu::Synth();
       synths[i]->open(*romImage, *pcmRomImage);
@@ -173,7 +167,8 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
     {
       if( cmSysexState == WAIT_FOR_0XF0 )
       {
-          if( packet->length >= 1 && packet->length <= 4 ) // not sysex and between 1-4 bytes inc status
+          // msg is a channel message, not sysex and between 1-4 bytes inc status
+          if( packet->length >= 1 && packet->length <= 4 )
           {
               unsigned int msg = 0; // build 32bit msg
               if( packet->length >= 1 ) msg |= ( packet->data[0] );
@@ -184,9 +179,19 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
               //fprintf(stdout, "msg: 0x%x \n", msg);
             
               unsigned int rxChan   = packet->data[0] & 0x0f;
-              unsigned int synthIdx = 0;
-              if( rxChan >= 1 ) synthIdx = rxChan - 1;
-              static_cast<MT32Synth*>(readProcRefCon)->synths[synthIdx]->playMsg( msg );
+              unsigned int synthIdx = 0;               // MT32Emu synth engines ignore rxChan 0
+              if( rxChan >= 1 ) synthIdx = rxChan - 1; // map rxChan 1..5 to synthIdx range 0..4 (e.g.)
+            
+              if( synthIdx < NUM_PARALLEL_SYNTHS ) // normal case, tx to specific instance
+              {
+                static_cast<MT32Synth*>(readProcRefCon)->synths[synthIdx]->playMsg( msg );
+              }
+              else                                 // special case, tx to all parallel instances
+              {
+                for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
+                  static_cast<MT32Synth*>(readProcRefCon)->synths[i]->playMsg( msg );
+              }
+            
               packet = MIDIPacketNext(packet);
               continue;
           }
@@ -241,8 +246,13 @@ void MT32Synth::CoreMidiRX(const MIDIPacketList *packetList, void* readProcRefCo
           fprintf(stdout, "\n");
           */
         
-          static_cast<MT32Synth*>(readProcRefCon)->synths[0]->playSysex( cmSysexData, cmSysexLen );
-          cmSysexState = WAIT_FOR_0XF0;
+          // all sysex to all instances
+          // TODO - addrH route to synths[0]..[4]
+          for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
+          {
+            static_cast<MT32Synth*>(readProcRefCon)->synths[i]->playSysex( cmSysexData, cmSysexLen );
+            cmSysexState = WAIT_FOR_0XF0;
+          }
         
           // F0 41 10 16 11 "lookup memory"
           // see libmt32emu memory offset comment in CoreMidiTimbreResponse()
@@ -289,19 +299,17 @@ uint16_t MT32Synth::getSysexTimbre(Byte addrH, Byte addrL, Byte* buffer)
   uint32_t addr = MT32EMU_MEMADDR( (0x04 << 16) | (addrH << 8) | addrL );
   uint16_t timbreSize = sizeof(MT32Emu::TimbreParam);
   
-  /* TODO
   unsigned int synthIdx = 0;
-  if( addrL == 0x00 ) synthIdx = 0;
-  if( addrL == 0x01 ) synthIdx = 1;
-  if( addrL == 0x03 ) synthIdx = 2;
-  if( addrL == 0x05 ) synthIdx = 3;
-  if( addrL == 0x07 ) synthIdx = 4;
-  */
+  if( addrH == 0x00 ) synthIdx = 0; // addrL == 0x00
+  if( addrH == 0x01 ) synthIdx = 1; // addrL == 0x76
+  if( addrH == 0x03 ) synthIdx = 2; // addrL == 0x6C
+  if( addrH == 0x05 ) synthIdx = 3; // addrL == 0x62
+  if( addrH == 0x07 ) synthIdx = 4; // addrL == 0x58
   
-  synths[0]->readMemory(addr, timbreSize, buffer + 8);
+  synths[synthIdx]->readMemory(addr, timbreSize, buffer + 8);
   
   // append checksum and sysex end marker 0xF7
-  uint8_t checksum = synths[0]->calcSysexChecksum(buffer + 5, timbreSize + 8, 0);
+  uint8_t checksum = synths[synthIdx]->calcSysexChecksum(buffer + 5, timbreSize + 8, 0);
   buffer[timbreSize + 8] = checksum;
   buffer[timbreSize + 9] = 0xF7;
   uint16_t bufferLen = timbreSize + 10;
@@ -353,11 +361,22 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
     MT32Synth *_this = (MT32Synth*) inUserData;
 
     int curBus = _this->curRenderAudioBus;
-    if( curBus < 0 ) return noErr; // abort if not rendering - TODO render a master stereo mix?
+    if( curBus < 0 ) return noErr; // abort if not rendering
   
     unsigned int amountToWrite = *ioNumberDataPackets;
     unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2; // stereo
     MT32Emu::Bit16s* data = _this->curAudioData[curBus];
+
+    // TODO - bus zero is a special case, master mix of all curAudioData
+    /*
+    if( curBus == 0 )
+    {
+      for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
+      {
+        curAudioData[NUM_PARALLEL_SYNTHS] 
+      }
+    }
+    */
 
     _this->synths[curBus]->render(data, amountToWrite, -1);
     ioData->mBuffers[0].mData = data;
@@ -371,6 +390,18 @@ OSStatus MT32Synth::RenderBus(AudioUnitRenderActionFlags &ioActionFlags,
   const AudioTimeStamp &inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames)
 {
     curRenderAudioBus = inBusNumber; // EncoderDataProc() needs to know which bus we're rendering
+
+
+    // TODO - bus zero is a special case, master mix of all curAudioData
+    /*
+    if( curBus == 0 )
+    {
+      for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
+      {
+        curAudioData[NUM_PARALLEL_SYNTHS]
+      }
+    }
+    */
 
     MT32Emu::Synth *synth = synths[curRenderAudioBus];
     if( !synth ) return noErr;
@@ -462,7 +493,8 @@ OSStatus MT32Synth::SaveState(CFPropertyListRef* outData)
     return noErr;
 }
 
-void MT32Synth::RestoreStateAsSysex( CFDataRef data )
+// sysex to all parallel instances
+void MT32Synth::RestoreAllStateAsSysex( CFDataRef data )
 {
     if (data == 0) return; // skip if not found
   
@@ -471,8 +503,23 @@ void MT32Synth::RestoreStateAsSysex( CFDataRef data )
   
     //fprintf(stdout, "restoring %d bytes\n", numBytes);
 
-    // send to libmt32emu
-    synths[0]->playSysex( CFDataGetBytePtr (data), numBytes );
+    for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
+    {
+      synths[i]->playSysex( CFDataGetBytePtr (data), numBytes );
+    }
+}
+
+// sysex to one specific instance
+void MT32Synth::RestoreOneStateAsSysex( MT32Emu::Synth *synth, CFDataRef data )
+{
+    if (data == 0) return; // skip if not found
+  
+    const int numBytes = (int) CFDataGetLength (data);
+    if (numBytes != 256) return; // must be 256 bytes incl 0xF0 and 0xF7
+  
+    //fprintf(stdout, "restoring %d bytes\n", numBytes);
+
+    synth->playSysex( CFDataGetBytePtr (data), numBytes );
 }
 
 OSStatus MT32Synth::RestoreState(CFPropertyListRef inData)
@@ -485,19 +532,19 @@ OSStatus MT32Synth::RestoreState(CFPropertyListRef inData)
     // TODO - cleanup copy-paste-repeat
   
     if (CFDictionaryGetValueIfPresent (dict, TIMBRE1_DICTIONARY_KEY, (const void**) &data))
-      RestoreStateAsSysex( data );
+      RestoreOneStateAsSysex( synths[0], data );
   
     if (CFDictionaryGetValueIfPresent (dict, TIMBRE2_DICTIONARY_KEY, (const void**) &data))
-       RestoreStateAsSysex(data);
+      RestoreOneStateAsSysex( synths[1], data );
   
     if (CFDictionaryGetValueIfPresent (dict, TIMBRE3_DICTIONARY_KEY, (const void**) &data))
-      RestoreStateAsSysex( data );
+      RestoreOneStateAsSysex( synths[2], data );
   
     if (CFDictionaryGetValueIfPresent (dict, TIMBRE4_DICTIONARY_KEY, (const void**) &data))
-       RestoreStateAsSysex(data);
+      RestoreOneStateAsSysex( synths[3], data );
   
     if (CFDictionaryGetValueIfPresent (dict, TIMBRE5_DICTIONARY_KEY, (const void**) &data))
-      RestoreStateAsSysex( data );
+      RestoreOneStateAsSysex( synths[4], data );
 
     return noErr;
 }

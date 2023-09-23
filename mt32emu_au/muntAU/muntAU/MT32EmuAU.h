@@ -19,13 +19,22 @@
 #pragma once
 
 // parallel MT32Emu synthesis engines are hosted here
-#define NUM_PARALLEL_SYNTHS 8
+#define NUM_PARALLEL_SYNTHS 5
+
+#define TIMBRE1_DICTIONARY_KEY   CFSTR("timbre1.syx")
+#define TIMBRE2_DICTIONARY_KEY   CFSTR("timbre2.syx")
+#define TIMBRE3_DICTIONARY_KEY   CFSTR("timbre3.syx")
+#define TIMBRE4_DICTIONARY_KEY   CFSTR("timbre4.syx")
+#define TIMBRE5_DICTIONARY_KEY   CFSTR("timbre5.syx")
 
 class MT32Synth : public MusicDeviceBase {
     public:
         // parallel synthesis engines and audio buffers
         MT32Emu::Synth *synths[NUM_PARALLEL_SYNTHS];
         MT32Emu::Bit16s* curAudioData[NUM_PARALLEL_SYNTHS];
+  
+        // TODO - master mix of all synth audio output
+        MT32Emu::Bit16s* mixAudioData;
   
         // RenderAudioBus() needs to tell EncoderDataProc() which bus is rendering
         // synths[0] renders audio bus 0 (stereo pair)
@@ -71,7 +80,9 @@ class MT32Synth : public MusicDeviceBase {
         // save and restore state of the MT32Emu "temporary" timbres
         virtual OSStatus SaveState(CFPropertyListRef* outData);
         virtual OSStatus RestoreState(CFPropertyListRef inData);
-        void RestoreStateAsSysex( CFDataRef data );
+  
+        void RestoreAllStateAsSysex( CFDataRef data ); // all parallel instances
+        void RestoreOneStateAsSysex( MT32Emu::Synth *synth, CFDataRef data ); // specific instance
   
         virtual bool StreamFormatWritable(  AudioUnitScope scope, AudioUnitElement element);
   
