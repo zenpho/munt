@@ -64,7 +64,7 @@ OSStatus MT32Synth::Initialize()
   
     //unsigned int dataSize = 1024 * destFormat.mFramesPerPacket * sizeof(MT32Emu::Bit16s) * 2; // stereo
     unsigned int dataSize = 512 * sizeof(MT32Emu::Bit16s) * 2; // stereo
-    for(int i=0; i<9; i++)
+    for(int i=0; i<8; i++)
     {
       curAudioData[i] = (MT32Emu::Bit16s*) malloc(dataSize);
       memset(curAudioData[i], 0, dataSize);
@@ -288,6 +288,16 @@ uint16_t MT32Synth::getSysexTimbre(Byte addrH, Byte addrL, Byte* buffer)
   
   uint32_t addr = MT32EMU_MEMADDR( (0x04 << 16) | (addrH << 8) | addrL );
   uint16_t timbreSize = sizeof(MT32Emu::TimbreParam);
+  
+  /* TODO
+  unsigned int synthIdx = 0;
+  if( addrL == 0x00 ) synthIdx = 0;
+  if( addrL == 0x01 ) synthIdx = 1;
+  if( addrL == 0x03 ) synthIdx = 2;
+  if( addrL == 0x05 ) synthIdx = 3;
+  if( addrL == 0x07 ) synthIdx = 4;
+  */
+  
   synths[0]->readMemory(addr, timbreSize, buffer + 8);
   
   // append checksum and sysex end marker 0xF7
@@ -341,12 +351,13 @@ bool MT32Synth::StreamFormatWritable(  AudioUnitScope scope, AudioUnitElement el
 static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNumberDataPackets, AudioBufferList *ioData, AudioStreamPacketDescription **outDataPacketDescription, void *inUserData)
 {
     MT32Synth *_this = (MT32Synth*) inUserData;
-  
-    unsigned int curBus = _this->curInBusNumber;
-    MT32Emu::Bit16s* data = _this->curAudioData[curBus];
+
+    int curBus = _this->curRenderAudioBus;
+    if( curBus < 0 ) return noErr; // abort if not rendering - TODO render a master stereo mix?
   
     unsigned int amountToWrite = *ioNumberDataPackets;
     unsigned int dataSize = amountToWrite * sizeof(MT32Emu::Bit16s) * 2; // stereo
+    MT32Emu::Bit16s* data = _this->curAudioData[curBus];
 
     _this->synths[curBus]->render(data, amountToWrite, -1);
     ioData->mBuffers[0].mData = data;
@@ -359,25 +370,28 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
 OSStatus MT32Synth::RenderBus(AudioUnitRenderActionFlags &ioActionFlags,
   const AudioTimeStamp &inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames)
 {
-    MT32Emu::Synth *synth = synths[inBusNumber];
+    curRenderAudioBus = inBusNumber; // EncoderDataProc() needs to know which bus we're rendering
+
+    MT32Emu::Synth *synth = synths[curRenderAudioBus];
     if( !synth ) return noErr;
   
     UInt32 ioOutputDataPackets = inNumberFrames * destFormat.mFramesPerPacket;
   
-    AUOutputElement* outputBus = GetOutput(inBusNumber);
+    AUOutputElement* outputBus = GetOutput(curRenderAudioBus);
     AudioBufferList& outputBufList = outputBus->GetBufferList();
     AUBufferList::ZeroBuffer(outputBufList);
-    AudioConverterRef audioConverterRef = audioConverters[inBusNumber];
-
-    curInBusNumber = inBusNumber;
-    AudioConverterFillComplexBuffer(audioConverterRef, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
+  
+    AudioConverterRef audioConverter = audioConverters[curRenderAudioBus];
+    AudioConverterFillComplexBuffer(audioConverter, EncoderDataProc, (void*) this, &ioOutputDataPackets, &outputBufList, NULL);
+  
+    curRenderAudioBus = -1; // rendering complete
 
     return noErr;
 }
 
 void MT32Synth::Cleanup()
 {
-    for(int i=0; i<8; i++)
+    for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
     {
       synths[i]->close();
       delete synths[i];
@@ -385,7 +399,7 @@ void MT32Synth::Cleanup()
   
     MusicDeviceBase::Cleanup();
   
-    for(int i=0; i<9; i++)
+    for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
     {
       free( curAudioData[i] );
     }

@@ -18,20 +18,35 @@
 
 #pragma once
 
+// parallel MT32Emu synthesis engines are hosted here
+#define NUM_PARALLEL_SYNTHS 8
+
 class MT32Synth : public MusicDeviceBase {
+    public:
+        // parallel synthesis engines and audio buffers
+        MT32Emu::Synth *synths[NUM_PARALLEL_SYNTHS];
+        MT32Emu::Bit16s* curAudioData[NUM_PARALLEL_SYNTHS];
+  
+        // RenderAudioBus() needs to tell EncoderDataProc() which bus is rendering
+        // synths[0] renders audio bus 0 (stereo pair)
+        // synths[1] renders audio bus 1 etc...
+        int curRenderAudioBus = -1;
+
     private:
-        AudioConverterRef audioConverters[8];
-        
-        CAStreamBasicDescription destFormat;
-  
-        const MT32Emu::ROMImage *romImage;
-        const MT32Emu::ROMImage *pcmRomImage;
-  
         // workaround Ableton Live limitations
         // use CoreMidi port - not (Ableton Live) host handlers
         MIDIClientRef m_client = 0;
         MIDIEndpointRef m_endpointOut = 0;
         MIDIEndpointRef m_endpointIn = 0;
+  
+        // convert MT32Emu 16bit unsigned int 32khz audio to whatever required
+        // parallel AudioConverters are required for the eight stereo pair audio outputs
+        AudioConverterRef audioConverters[NUM_PARALLEL_SYNTHS];
+        CAStreamBasicDescription destFormat;
+  
+        // one pair of ROM images is allocated, loaded, and freed at startup
+        const MT32Emu::ROMImage *romImage;
+        const MT32Emu::ROMImage *pcmRomImage;
 
     public:
         MT32Synth(ComponentInstance inComponentInstance);
@@ -53,7 +68,7 @@ class MT32Synth : public MusicDeviceBase {
         // - returns number of bytes
         uint16_t getSysexTimbre(Byte addrH, Byte addrL, Byte* buffer);
   
-        // save and restore state of the mt32emu "temporary" timbres
+        // save and restore state of the MT32Emu "temporary" timbres
         virtual OSStatus SaveState(CFPropertyListRef* outData);
         virtual OSStatus RestoreState(CFPropertyListRef inData);
         void RestoreStateAsSysex( CFDataRef data );
@@ -88,8 +103,4 @@ class MT32Synth : public MusicDeviceBase {
                               AudioUnitParameterInfo & outParameterInfo);
   
         virtual OSStatus RenderBus(AudioUnitRenderActionFlags &ioActionFlags, const AudioTimeStamp &inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames);
-  
-        MT32Emu::Synth *synths[8];
-        MT32Emu::Bit16s* curAudioData[8];
-        unsigned int curInBusNumber = -1;
 };
