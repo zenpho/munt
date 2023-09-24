@@ -57,7 +57,7 @@ OSStatus MT32Synth::Initialize()
     sourceDescription.mReserved = 0;
   
     //unsigned int dataSize = 1024 * destFormat.mFramesPerPacket * sizeof(MT32Emu::Bit16s) * 2; // stereo
-    unsigned int dataSize = 512 * sizeof(MT32Emu::Bit16s) * 2; // stereo
+    unsigned int dataSize = 512 * destFormat.mFramesPerPacket * sizeof(MT32Emu::Bit16s) * 2; // stereo
     for(int i=0; i<NUM_PARALLEL_SYNTHS; i++)
     {
       curAudioData[i] = (MT32Emu::Bit16s*) malloc(dataSize);
@@ -88,6 +88,8 @@ OSStatus MT32Synth::Initialize()
       synths[i]->setOutputGain(2.0);
       synths[i]->setReverbOutputGain(0.0);
       synths[i]->setReverbEnabled(false);
+      
+      synths[i]->render(curAudioData[i], 512); // Q: is pre-render necessary?
       
       fprintf(stdout, "MUNT:MT32 (multi %d) configured for %d partials\n", i, synths[i]->getPartialCount());
     }
@@ -378,7 +380,7 @@ static OSStatus EncoderDataProc(AudioConverterRef inAudioConverter, UInt32 *ioNu
     }
     */
 
-    _this->synths[curBus]->render(data, amountToWrite, -1);
+    _this->synths[curBus]->render(data, amountToWrite);
     ioData->mBuffers[0].mData = data;
     ioData->mBuffers[0].mDataByteSize = dataSize;
     ioData->mNumberBuffers = 1;
